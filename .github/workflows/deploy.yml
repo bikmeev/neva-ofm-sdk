@@ -28,16 +28,17 @@ jobs:
             echo "folder=latest-dev" >> $GITHUB_OUTPUT
           fi
       
-      - name: Debug - Show files
+      - name: Debug info
         run: |
-          echo "📁 Files in repository:"
+          echo "📁 Repository contents:"
           ls -lah
           echo ""
-          echo "📄 File to upload:"
+          echo "📄 File info:"
           ls -lh neva-ofm.js
+          file neva-ofm.js
           echo ""
-          echo "🔍 File size:"
-          du -h neva-ofm.js
+          echo "📝 First 5 lines:"
+          head -5 neva-ofm.js
       
       - name: Upload to R2
         env:
@@ -48,21 +49,36 @@ jobs:
           FOLDER="${{ steps.path.outputs.folder }}"
           
           echo "=========================================="
-          echo "🚀 Starting upload to R2"
+          echo "🚀 Uploading to R2"
           echo "=========================================="
-          echo "📦 Bucket: ${R2_BUCKET_NAME}"
-          echo "📂 Folder: ${FOLDER}"
-          echo "📄 File: neva-ofm.js"
+          echo "Bucket:   ${R2_BUCKET_NAME}"
+          echo "Path:     ${FOLDER}/neva-ofm.js"
+          echo "File:     neva-ofm.js"
+          echo "Size:     $(du -h neva-ofm.js | cut -f1)"
           echo "=========================================="
+          echo ""
           
           wrangler r2 object put "${R2_BUCKET_NAME}/${FOLDER}/neva-ofm.js" \
             --file ./neva-ofm.js \
             --content-type "application/javascript" \
             --cache-control "public, max-age=3600"
           
-          echo "✅ Upload complete!"
+          UPLOAD_STATUS=$?
           
-          echo "🔍 Verifying..."
-          wrangler r2 object get "${R2_BUCKET_NAME}/${FOLDER}/neva-ofm.js" --file /tmp/test.js --remote
-          ls -lh /tmp/test.js
-          echo "✅ File verified in R2!"
+          echo ""
+          if [ $UPLOAD_STATUS -eq 0 ]; then
+            echo "✅ Upload successful!"
+            echo ""
+            echo "=========================================="
+            echo "📍 File location:"
+            echo "   Bucket: ${R2_BUCKET_NAME}"
+            echo "   Path:   ${FOLDER}/neva-ofm.js"
+            echo ""
+            echo "🌐 Access URLs:"
+            echo "   R2 path: ${R2_BUCKET_NAME}/${FOLDER}/neva-ofm.js"
+            echo "   Public:  https://pub-YOUR-ID.r2.dev/${FOLDER}/neva-ofm.js"
+            echo "=========================================="
+          else
+            echo "❌ Upload failed with status: $UPLOAD_STATUS"
+            exit 1
+          fi
