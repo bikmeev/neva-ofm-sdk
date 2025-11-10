@@ -1,0 +1,43 @@
+name: Sync to R2
+
+on:
+  push:
+    branches: [main, dev]
+    tags: ['v*']
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Install Wrangler
+        run: npm install -g wrangler
+      
+      - name: Determine path
+        id: path
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            echo "folder=${VERSION}" >> $GITHUB_OUTPUT
+          elif [[ $GITHUB_REF == refs/heads/main ]]; then
+            echo "folder=latest" >> $GITHUB_OUTPUT
+          elif [[ $GITHUB_REF == refs/heads/dev ]]; then
+            echo "folder=latest-dev" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Upload to R2
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          FOLDER="${{ steps.path.outputs.folder }}"
+          echo "📤 Uploading to: ${FOLDER}/neva-ofm.js"
+          wrangler r2 object put "${R2_BUCKET_NAME}/${FOLDER}/neva-ofm.js" \
+            --file ./neva-ofm.js \
+            --content-type "application/javascript" \
+            --cache-control "public, max-age=3600"
+          echo "✅ Uploaded!"
