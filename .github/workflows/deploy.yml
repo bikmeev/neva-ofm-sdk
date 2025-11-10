@@ -28,6 +28,17 @@ jobs:
             echo "folder=latest-dev" >> $GITHUB_OUTPUT
           fi
       
+      - name: Debug - Show files
+        run: |
+          echo "📁 Files in repository:"
+          ls -lah
+          echo ""
+          echo "📄 File to upload:"
+          ls -lh neva-ofm.js
+          echo ""
+          echo "🔍 File size:"
+          du -h neva-ofm.js
+      
       - name: Upload to R2
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -35,9 +46,23 @@ jobs:
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
           FOLDER="${{ steps.path.outputs.folder }}"
-          echo "📤 Uploading to: ${FOLDER}/neva-ofm.js"
+          
+          echo "=========================================="
+          echo "🚀 Starting upload to R2"
+          echo "=========================================="
+          echo "📦 Bucket: ${R2_BUCKET_NAME}"
+          echo "📂 Folder: ${FOLDER}"
+          echo "📄 File: neva-ofm.js"
+          echo "=========================================="
+          
           wrangler r2 object put "${R2_BUCKET_NAME}/${FOLDER}/neva-ofm.js" \
             --file ./neva-ofm.js \
             --content-type "application/javascript" \
             --cache-control "public, max-age=3600"
-          echo "✅ Uploaded!"
+          
+          echo "✅ Upload complete!"
+          
+          echo "🔍 Verifying..."
+          wrangler r2 object get "${R2_BUCKET_NAME}/${FOLDER}/neva-ofm.js" --file /tmp/test.js --remote
+          ls -lh /tmp/test.js
+          echo "✅ File verified in R2!"
