@@ -1,5 +1,5 @@
 /**
- * NEVA OFM SDK v2.0 - neva-ofm.cc
+ * NEVA OFM SDK v1.0 - neva-ofm.cc
  */
 
 (function(window, document) {

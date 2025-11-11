@@ -35,9 +35,35 @@ jobs:
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
           FOLDER="${{ steps.path.outputs.folder }}"
-          echo "📤 Uploading to: ${FOLDER}/neva-ofm.js"
+          
+          echo "=========================================="
+          echo "🚀 Uploading to R2"
+          echo "=========================================="
+          echo "Bucket: ${R2_BUCKET_NAME}"
+          echo "Path:   ${FOLDER}/neva-ofm.js"
+          echo "=========================================="
+          
           wrangler r2 object put "${R2_BUCKET_NAME}/${FOLDER}/neva-ofm.js" \
             --file ./neva-ofm.js \
             --content-type "application/javascript" \
-            --cache-control "public, max-age=3600"
-          echo "✅ Uploaded!"
+            --cache-control "public, max-age=3600" \
+            --remote
+          
+          echo ""
+          echo "✅ Upload complete!"
+          echo ""
+          echo "🔍 Verifying upload..."
+          
+          wrangler r2 object get "${R2_BUCKET_NAME}/${FOLDER}/neva-ofm.js" \
+            --file /tmp/verify.js \
+            --remote
+          
+          echo ""
+          echo "📊 Verification results:"
+          ls -lh /tmp/verify.js
+          echo ""
+          echo "=========================================="
+          echo "🎉 Deployment successful!"
+          echo "=========================================="
+          echo "📍 File location: ${R2_BUCKET_NAME}/${FOLDER}/neva-ofm.js"
+          echo "=========================================="
