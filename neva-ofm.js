@@ -1,5 +1,5 @@
 /**
- * NEVA OFM SDK v1.0 - neva-ofm.cc
+ * NEVA OFM SDK v1.0.1 - neva-ofm.cc
  */
 
 (function(window, document) {
@@ -580,7 +580,7 @@
       }
 
       if (!this.initialized) {
-        throw new Error('AntiBot not initialized yet');
+        throw new Error('neva ofm sdk not initialized yet');
       }
 
       const container = document.getElementById(containerId);
@@ -588,10 +588,37 @@
         throw new Error(`Container element "${containerId}" not found`);
       }
 
-      container.innerHTML = '';
+      // Показываем placeholder сразу
+      container.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; opacity: 0.5;">
+          <svg style="animation: antibot-spin 1s linear infinite; height: 1rem; width: 1rem;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+          </svg>
+          <span>Initializing...</span>
+        </div>
+      `;
       container.style.minHeight = '90px';
       container.style.position = 'relative';
 
+      // Дождаться инициализации
+      if (!this.initialized) {
+        const checkInit = setInterval(() => {
+          if (this.initialized) {
+            clearInterval(checkInit);
+            this._renderContent(container, containerId);
+          }
+        }, 100);
+        return;
+      }
+
+      this._renderContent(container, containerId);
+
+    }
+
+    _renderContent(container, containerId) {
+      container.innerHTML = '';
+      
       // Add branding if on free plan
       if (this.siteConfig.show_branding) {
         this._addBranding(container);
@@ -634,9 +661,14 @@
         font-family: inherit;
         font-size: inherit;
         color: inherit;
-        text-decoration: underline;
         transition: opacity 0.2s;
       `;
+
+      // Добавь стиль для текста отдельно
+      const textSpan = button.querySelector('.antibot-btn-text');
+      if (textSpan) {
+        textSpan.style.textDecoration = 'underline';
+      }
       
       button.addEventListener('mouseenter', () => {
         this.buttonHoverTime = Date.now();
