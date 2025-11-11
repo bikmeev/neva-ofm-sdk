@@ -2,7 +2,7 @@
 
 Advanced bot protection with captcha verification and intelligent cloaking system.
 
-[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/bikmeev/neva-ofm-sdk)
+[![Version](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/bikmeev/neva-ofm-sdk)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![GitHub](https://img.shields.io/badge/github-bikmeev%2Fneva--ofm--sdk-black.svg)](https://github.com/bikmeev/neva-ofm-sdk)
 
