@@ -1,5 +1,5 @@
 /**
- * NEVA OFM SDK v1.0.1 - neva-ofm.cc
+ * NEVA OFM SDK v1.0.2 - neva-ofm.cc
  */
 
 (function(window, document) {
@@ -10,7 +10,7 @@
     apiUrl: 'https://api.neva-ofm.cc',
     theme: 'light',
     captchaProvider: 'both',
-    hideCaptcha: false,
+    hideCaptcha: true,
     size: 'normal',
     language: 'auto',
     retryAttempts: 3,
@@ -18,6 +18,8 @@
     mouseTracking: true,
     buttonText: 'Press here to see captcha',
     buttonEmoji: '👈',
+    buttonColor: 'white',
+    buttonEmojiAnimation: true,
     
     // Advanced protection
     randomContainers: true, // Create random dummy containers
@@ -660,9 +662,15 @@
         border: none;
         font-family: inherit;
         font-size: inherit;
-        color: inherit;
+        color: ${this.config.buttonColor};
         transition: opacity 0.2s;
       `;
+
+      const emojiSpan = button.querySelector('.antibot-btn-emoji');
+      if (emojiSpan && this.config.buttonEmojiAnimation) {
+        emojiSpan.style.display = 'inline-block';
+        emojiSpan.style.animation = 'antibot-poke 0.6s ease-in-out infinite';
+      }
 
       // Добавь стиль для текста отдельно
       const textSpan = button.querySelector('.antibot-btn-text');
@@ -731,6 +739,20 @@
         const style = document.createElement('style');
         style.setAttribute('data-antibot-spin', 'true');
         style.textContent = '@keyframes antibot-spin { to { transform: rotate(360deg); } }';
+        document.head.appendChild(style);
+      }
+      
+      // Add poke animation for emoji
+      if (!document.querySelector('style[data-antibot-poke]')) {
+        const style = document.createElement('style');
+        style.setAttribute('data-antibot-poke', 'true');
+        style.textContent = `
+          @keyframes antibot-poke {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            75% { transform: translateX(3px); }
+          }
+        `;
         document.head.appendChild(style);
       }
       

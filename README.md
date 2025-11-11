@@ -11,6 +11,7 @@ Advanced bot protection with captcha verification and intelligent cloaking syste
 - **Dual Captcha Support** - Cloudflare Turnstile & hCaptcha
 - **Intelligent Bot Detection** - Behavioral analysis and fingerprinting
 - **Advanced Cloaking System** - Hide content from bots (premium feature)
+- **BlackTLDs** - Protect from registrator checks for ex. to prevent domain beeng blocked (premium feature)
 - **Mouse Movement Tracking** - Human verification
 - **Random Dummy Containers** - Anti-automation protection
 - **Geographic Blocking** - Country-based restrictions
@@ -122,8 +123,6 @@ antibot.onSuccess(async (token) => {
 
 ```javascript
 const antibot = new AntiBot('abs_your_site_key', {
-  // API Configuration
-  apiUrl: 'https://api.neva-ofm.cc',        // API endpoint
   
   // Captcha Settings
   theme: 'light',                            // 'light' or 'dark'
@@ -167,16 +166,17 @@ Creates a new AntiBot instance and initializes the protection system.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `apiUrl` | string | `'https://api.neva-ofm.cc'` | API endpoint URL |
 | `theme` | string | `'light'` | Captcha theme: `'light'` or `'dark'` |
 | `captchaProvider` | string | `'both'` | Provider selection: `'turnstile'`, `'hcaptcha'`, or `'both'` (random) |
 | `size` | string | `'normal'` | Captcha size: `'normal'` or `'compact'` |
 | `language` | string | `'auto'` | Language code (e.g., `'en'`, `'ru'`) or `'auto'` |
-| `hideCaptcha` | boolean | `false` | Hide captcha behind a button |
+| `hideCaptcha` | boolean | `true` | Hide captcha behind a button (reccomended true)|
 | `buttonText` | string | `'Press here to see captcha'` | Button text when `hideCaptcha: true` |
 | `buttonEmoji` | string | `'👈'` | Emoji displayed on button |
+| `buttonColor` | string | `'white'` | Button text color (CSS color value) |
+| `buttonEmojiAnimation` | boolean | `true` | Enable poke animation for button emoji |
 | `mouseTracking` | boolean | `true` | Enable mouse movement analysis for bot detection |
-| `randomContainers` | boolean | `true` | Create random dummy containers to confuse automation |
+| `randomContainers` | boolean | `true` | Create random dummy containers to confuse automation (reccomended true) |
 | `minDummyContainers` | number | `2` | Minimum number of dummy containers |
 | `maxDummyContainers` | number | `5` | Maximum number of dummy containers |
 | `retryAttempts` | number | `3` | Number of retry attempts for failed requests |
@@ -194,6 +194,7 @@ const antibot = new AntiBot('abs_your_site_key_here', {
   hideCaptcha: true,
   buttonText: 'Verify you are human',
   buttonEmoji: '🔐',
+  buttonColor: '#ffffff',
   mouseTracking: true,
   captchaProvider: 'turnstile'
 });
@@ -610,7 +611,7 @@ antibot.onSuccess(() => {
 
 > **Note:** Cloaking features are only available on paid plans (5 domains or 10 domains). Configure settings in your NEVA OFM dashboard.
 
-### What is Cloaking?
+### What is our Cloaking?
 
 Cloaking is an advanced protection system that detects and blocks bots, crawlers, and suspicious traffic before they see your content. The system analyzes:
 
@@ -707,7 +708,7 @@ Always verify tokens on your backend server for security.
 **Request:**
 ```json
 {
-  "secret": "secret_your_secret_key",
+  "secret": "secret_your_secret_key_from_neva_ofm_dashboard",
   "token": "eyJhbGc..."
 }
 ```
@@ -1105,6 +1106,7 @@ Visit [neva-ofm.cc](https://neva-ofm.cc) for current pricing and features.
 
 Need help? Contact our support team:
 
+- Raise ticket in NEVA OFM Dashboard: [neva-ofm.cc/dashboard](https://neva-ofm.cc/dashboard)
 - Telegram: [@manager_shurik](https://t.me/manager_shurik)
 - Documentation: [docs.neva-ofm.cc](https://docs.neva-ofm.cc)
 - Issues: [GitHub Issues](https://github.com/bikmeev/neva-ofm-sdk/issues)
@@ -1133,3 +1135,43 @@ If you find NEVA OFM SDK helpful, consider supporting our development with crypt
 </a>
 
 Your support helps us maintain and improve the SDK. Thank you!
+
+## Change Log
+
+### Version 1.0.2 (Current)
+**Release Date:** 2025-11-11
+
+**Improvements:**
+- Fixed captcha styling issues
+- Improved visual consistency across different themes
+- Enhanced CSS compatibility with various frameworks
+- Better responsive design for mobile devices
+
+---
+
+### Version 1.0.1
+**Release Date:** 2025-11-10
+
+**Improvements:**
+- Performance optimization during captcha initialization
+- Added loading indicator while captcha is being initialized
+- Improved user feedback during SDK loading
+- Better handling of slow network connections
+
+---
+
+### Version 1.0.0
+**Release Date:** 2025-11-09
+
+**Initial Release:**
+- Basic captcha verification with Cloudflare Turnstile and hCaptcha support
+- Intelligent bot detection with behavioral analysis
+- Advanced cloaking system for premium users
+- Mouse movement tracking for human verification
+- Random dummy containers to prevent automation
+- Geographic and device-based blocking
+- Crawler detection and blocking
+- Customizable UI with light/dark themes
+- Hidden captcha mode
+- Secure backend verification with JWT tokens
+- Complete API with callbacks for success, error, and expiration events
