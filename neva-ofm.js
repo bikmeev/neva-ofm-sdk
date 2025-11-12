@@ -21,7 +21,7 @@
     buttonEmoji: '👈',
     buttonColor: 'white',
     buttonEmojiAnimation: true,
-    loaderTextColor: '#ffffff',
+    loaderTextColor: 'white',
     
     // Performance optimizations
     preloadBothProviders: false,
