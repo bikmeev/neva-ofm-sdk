@@ -2,7 +2,7 @@
 
 Advanced bot protection with captcha verification and intelligent cloaking system.
 
-[![Version](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/bikmeev/neva-ofm-sdk)
+[![Version](https://img.shields.io/badge/version-1.0.3-blue.svg)](https://github.com/bikmeev/neva-ofm-sdk)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![GitHub](https://img.shields.io/badge/github-bikmeev%2Fneva--ofm--sdk-black.svg)](https://github.com/bikmeev/neva-ofm-sdk)
 
@@ -1138,7 +1138,23 @@ Your support helps us maintain and improve the SDK. Thank you!
 
 ## Change Log
 
-### Version 1.0.2 (Current)
+### Version 1.0.3 (Current)
+**Release Date:** 2025-11-12
+**Bug Fixes:**
+- Fixed critical DOM manipulation error causing "removeChild" runtime exceptions
+- Resolved memory leaks from event listeners not being properly cleaned up
+- Fixed issue where captcha containers were not safely removed on component unmount
+
+**Improvements:**
+- Added destroy() method for proper cleanup of SDK instances
+- Implemented safe DOM element removal with parent node validation
+- Enhanced reset() method with error handling to prevent crashes
+- Improved _renderContent() to safely clear containers before rendering
+- Added proper event listener cleanup in _setupMouseTracking()
+- Better handling of edge cases when SDK is destroyed during initialization
+
+
+### Version 1.0.2
 **Release Date:** 2025-11-11
 
 **Improvements:**

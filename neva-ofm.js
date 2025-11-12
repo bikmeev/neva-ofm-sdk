@@ -1,5 +1,5 @@
 /**
- * NEVA OFM SDK v1.0.2 - neva-ofm.cc
+ * NEVA OFM SDK v1.0.3 - neva-ofm.cc
  */
 
 (function(window, document) {
@@ -476,7 +476,8 @@
     }
 
     _setupMouseTracking() {
-      window.addEventListener('mousemove', (e) => {
+      // Сохраняем ссылку на обработчик
+      this._mouseMoveHandler = (e) => {
         const now = Date.now();
         this.mouseMovements.push({ x: e.clientX, y: e.clientY, time: now });
         
@@ -485,7 +486,9 @@
         }
         
         this._analyzeMouseMovement();
-      });
+      };
+      
+      window.addEventListener('mousemove', this._mouseMoveHandler);
     }
 
     _analyzeMouseMovement() {
@@ -619,6 +622,15 @@
     }
 
     _renderContent(container, containerId) {
+
+      while (container && container.firstChild) {
+        try {
+          container.removeChild(container.firstChild);
+        } catch (e) {
+          break;
+        }
+      }
+  
       container.innerHTML = '';
       
       // Add branding if on free plan
@@ -741,7 +753,7 @@
         style.textContent = '@keyframes antibot-spin { to { transform: rotate(360deg); } }';
         document.head.appendChild(style);
       }
-      
+
       // Add poke animation for emoji
       if (!document.querySelector('style[data-antibot-poke]')) {
         const style = document.createElement('style');
@@ -882,10 +894,54 @@
     reset() {
       this.token = null;
       
-      if (this.currentProvider === 'turnstile' && window.turnstile && this.widgetId !== null) {
-        window.turnstile.reset(this.widgetId);
-      } else if (this.currentProvider === 'hcaptcha' && window.hcaptcha && this.widgetId !== null) {
-        window.hcaptcha.reset(this.widgetId);
+      try {
+        if (this.currentProvider === 'turnstile' && window.turnstile && this.widgetId !== null) {
+          window.turnstile.reset(this.widgetId);
+        } else if (this.currentProvider === 'hcaptcha' && window.hcaptcha && this.widgetId !== null) {
+          window.hcaptcha.reset(this.widgetId);
+        }
+      } catch (error) {
+        console.warn('Reset error:', error);
+      }
+    }
+
+    destroy() {
+      try {
+        // Remove event listeners
+        if (this.config.mouseTracking) {
+          // Сохраните ссылку на обработчик при создании
+          window.removeEventListener('mousemove', this._mouseMoveHandler);
+        }
+
+        // Reset captcha widget
+        this.reset();
+
+        // Clear all containers including dummies
+        const containers = document.querySelectorAll('.antibot-container, .antibot-dummy');
+        containers.forEach(container => {
+          if (container && container.parentNode) {
+            container.parentNode.removeChild(container);
+          }
+        });
+
+        // Clear branding
+        const branding = document.querySelector('.antibot-branding');
+        if (branding && branding.parentNode) {
+          branding.parentNode.removeChild(branding);
+        }
+
+        // Clear loader
+        const loader = document.querySelector('.antibot-loader');
+        if (loader && loader.parentNode) {
+          loader.parentNode.removeChild(loader);
+        }
+
+        // Reset state
+        this.widgetId = null;
+        this.token = null;
+        this.initialized = false;
+      } catch (error) {
+        console.error('Destroy error:', error);
       }
     }
 
