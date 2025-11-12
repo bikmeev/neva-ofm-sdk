@@ -1,5 +1,6 @@
 /**
- * NEVA OFM SDK v1.0.3 - neva-ofm.cc
+ * NEVA OFM SDK v1.0.4 - neva-ofm.cc
+ * Optimized with parallel loading and instant rendering
  */
 
 (function(window, document) {
@@ -20,9 +21,14 @@
     buttonEmoji: '👈',
     buttonColor: 'white',
     buttonEmojiAnimation: true,
+    loaderTextColor: '#ffffff',
+    
+    // Performance optimizations
+    preloadBothProviders: false,
+    instantRender: true,
     
     // Advanced protection
-    randomContainers: true, // Create random dummy containers
+    randomContainers: true,
     minDummyContainers: 2,
     maxDummyContainers: 5
   };
@@ -52,7 +58,7 @@
     mobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i,
     tablet: /iPad|Android(?!.*Mobile)/i,
     desktop: /Windows|Macintosh|Linux/i,
-    oldWindows: /Windows NT (5\.|6\.0|6\.1)/i // Windows XP, Vista, 7
+    oldWindows: /Windows NT (5\.|6\.0|6\.1)/i
   };
 
   class AntiBot {
@@ -74,6 +80,9 @@
       this.isBlocked = false;
       this.realContainerId = null;
       
+      // Pending render queue
+      this.pendingRenders = [];
+      
       // Mouse tracking
       this.mouseMovements = [];
       this.isHumanLikely = false;
@@ -84,6 +93,7 @@
       this.onSuccessCallback = null;
       this.onErrorCallback = null;
       this.onExpireCallback = null;
+      this.onInitCallback = null;
 
       // Initialize
       this._init();
@@ -113,31 +123,43 @@
 
     async _init() {
       try {
-        // Fetch site configuration
-        await this._fetchSiteConfig();
+        // Parallel initialization: config + scripts
+        const tasks = [];
         
-        // Check subscription and apply cloaking if enabled
+        tasks.push(this._fetchSiteConfig());
+        
+        if (this.config.preloadBothProviders) {
+          tasks.push(this._preloadCaptchaScripts());
+        }
+        
+        await Promise.all(tasks);
+        
         if (this.siteConfig.cloaking_enabled && this.cloakingConfig) {
           await this._applyCloaking();
         }
         
-        // If blocked, don't continue initialization
         if (this.isBlocked) {
           return;
         }
         
-        // Determine captcha provider
         this._determineCaptchaProvider();
         
-        // Load captcha script
-        await this._loadCaptchaScript();
+        if (!this.config.preloadBothProviders) {
+          await this._loadCaptchaScript();
+        }
         
-        // Setup mouse tracking if enabled
         if (this.config.mouseTracking) {
           this._setupMouseTracking();
         }
         
         this.initialized = true;
+        
+        this._executePendingRenders();
+        
+        if (this.onInitCallback) {
+          this.onInitCallback();
+        }
+        
       } catch (error) {
         console.error('AntiBot initialization error:', error);
         if (this.onErrorCallback) {
@@ -157,12 +179,10 @@
         
         this.siteConfig = await response.json();
         
-        // Сохранить настройки клоакинга если есть
         if (this.siteConfig.cloaking) {
           this.cloakingConfig = this.siteConfig.cloaking;
         }
         
-        // Validate domain
         const currentDomain = window.location.hostname;
         const allowedDomains = this.siteConfig.allowed_domains || [];
         
@@ -178,6 +198,39 @@
       }
     }
 
+    async _preloadCaptchaScripts() {
+      const promises = [
+        this._loadScriptByUrl(CAPTCHA_SCRIPTS.turnstile),
+        this._loadScriptByUrl(CAPTCHA_SCRIPTS.hcaptcha)
+      ];
+      
+      try {
+        await Promise.all(promises);
+        this.captchaLoaded = true;
+      } catch (error) {
+        console.warn('Failed to preload some captcha scripts:', error);
+      }
+    }
+
+    _loadScriptByUrl(url) {
+      return new Promise((resolve, reject) => {
+        if (this._isScriptLoaded(url)) {
+          resolve();
+          return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = url;
+        script.async = true;
+        script.defer = true;
+        
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load ${url}`));
+        
+        document.head.appendChild(script);
+      });
+    }
+
     async _applyCloaking() {
       const botDetection = this._detectBot();
       const deviceCheck = this._checkDevice();
@@ -186,7 +239,6 @@
       let shouldBlock = false;
       let blockReason = '';
 
-      // Check bot detection based on mode
       const mode = this.cloakingConfig.mode || 'standard';
       
       if (mode === 'standard') {
@@ -206,13 +258,11 @@
         }
       }
 
-      // Check crawlers
       if (this.cloakingConfig.block_crawlers && botDetection.isCrawler) {
         shouldBlock = true;
         blockReason = 'Crawler blocked';
       }
 
-      // Check blocked countries
       if (this.cloakingConfig.blocked_countries && this.cloakingConfig.blocked_countries.length > 0) {
         if (geoCheck.country && this.cloakingConfig.blocked_countries.includes(geoCheck.country)) {
           shouldBlock = true;
@@ -220,7 +270,6 @@
         }
       }
 
-      // Check blocked devices
       if (this.cloakingConfig.blocked_devices && this.cloakingConfig.blocked_devices.length > 0) {
         if (this.cloakingConfig.blocked_devices.includes(deviceCheck.type)) {
           shouldBlock = true;
@@ -232,7 +281,6 @@
         this.isBlocked = true;
         this._handleBlock(blockReason);
       } else {
-        // Hide elements from bots if configured
         this._applyElementHiding();
       }
 
@@ -245,7 +293,6 @@
       let isCrawler = false;
       const checks = [];
 
-      // User agent check
       const ua = navigator.userAgent;
       BOT_PATTERNS.userAgents.forEach(pattern => {
         if (pattern.test(ua)) {
@@ -255,7 +302,6 @@
         }
       });
 
-      // Window properties
       BOT_PATTERNS.properties.forEach(prop => {
         if (window[prop] || navigator[prop]) {
           score += 3;
@@ -272,32 +318,27 @@
         }
       });
 
-      // WebDriver check
       if (navigator.webdriver === true) {
         score += 3;
         isDefiniteBot = true;
         checks.push('webdriver');
       }
 
-      // Chrome/plugins check
       if (!window.chrome && /Chrome/.test(ua)) {
         score += 1;
         checks.push('chrome_mismatch');
       }
 
-      // Language check
       if (!navigator.languages || navigator.languages.length === 0) {
         score += 1;
         checks.push('no_languages');
       }
 
-      // Plugin check (for older browsers)
       if (navigator.plugins && navigator.plugins.length === 0 && !/Mobile|Android/i.test(ua)) {
         score += 1;
         checks.push('no_plugins');
       }
 
-      // Permission API check
       if (!navigator.permissions) {
         score += 1;
         checks.push('no_permissions');
@@ -351,7 +392,6 @@
     _handleBlock(reason) {
       console.warn('Access blocked:', reason);
 
-      // Show fallback page or content
       const fallbackUrl = this.cloakingConfig.fallback_page_url;
       
       if (fallbackUrl) {
@@ -361,7 +401,6 @@
           document.body.innerHTML = fallbackUrl;
         }
       } else {
-        // Default fallback
         document.body.innerHTML = `
           <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: system-ui, -apple-system, sans-serif; padding: 2rem;">
             <div style="text-align: center; max-width: 500px;">
@@ -386,10 +425,8 @@
         });
       };
 
-      // Hide existing elements
       hideElements();
 
-      // Watch for new elements
       if (window.MutationObserver) {
         const observer = new MutationObserver(mutations => {
           mutations.forEach(mutation => {
@@ -399,7 +436,6 @@
                   node.style.display = 'none';
                   node.setAttribute('data-antibot-hidden', 'true');
                 }
-                // Check children
                 const children = node.querySelectorAll ? node.querySelectorAll(selector) : [];
                 children.forEach(child => {
                   child.style.display = 'none';
@@ -476,7 +512,6 @@
     }
 
     _setupMouseTracking() {
-      // Сохраняем ссылку на обработчик
       this._mouseMoveHandler = (e) => {
         const now = Date.now();
         this.mouseMovements.push({ x: e.clientX, y: e.clientY, time: now });
@@ -545,7 +580,6 @@
       
       const allContainerIds = [];
       
-      // Create dummy containers
       for (let i = 0; i < numDummies; i++) {
         const dummyId = `antibot-dummy-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         allContainerIds.push(dummyId);
@@ -560,16 +594,13 @@
         parentElement.appendChild(dummy);
       }
       
-      // Add real container ID
       allContainerIds.push(realContainerId);
       
-      // Shuffle array
       for (let i = allContainerIds.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [allContainerIds[i], allContainerIds[j]] = [allContainerIds[j], allContainerIds[i]];
       }
       
-      // Reorder containers in DOM
       allContainerIds.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
@@ -578,14 +609,19 @@
       });
     }
 
+    _executePendingRenders() {
+      while (this.pendingRenders.length > 0) {
+        const { container, containerId } = this.pendingRenders.shift();
+        if (container && document.body.contains(container)) {
+          this._renderContent(container, containerId);
+        }
+      }
+    }
+
     render(containerId) {
       if (this.isBlocked) {
         console.warn('Cannot render captcha: user is blocked');
         return;
-      }
-
-      if (!this.initialized) {
-        throw new Error('neva ofm sdk not initialized yet');
       }
 
       const container = document.getElementById(containerId);
@@ -593,36 +629,162 @@
         throw new Error(`Container element "${containerId}" not found`);
       }
 
-      // Показываем placeholder сразу
-      container.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; opacity: 0.5;">
+      // Instant render mode
+      if (!this.initialized && this.config.instantRender) {
+        container.style.minHeight = '90px';
+        container.style.position = 'relative';
+        
+        if (this.config.hideCaptcha) {
+          this._renderInstantButton(container, containerId);
+        } else {
+          this._renderInstantLoader(container, containerId);
+        }
+        
+        this.pendingRenders.push({ container, containerId });
+        return;
+      }
+
+      if (this.initialized) {
+        this._renderContent(container, containerId);
+        return;
+      }
+
+      throw new Error('NEVA OFM SDK not initialized yet');
+    }
+
+    _renderInstantButton(container, containerId) {
+      container.innerHTML = '';
+      
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'antibot-show-captcha-btn';
+      button.innerHTML = `
+        <span class="antibot-btn-text">${this.config.buttonText}</span>
+        <span class="antibot-btn-emoji">${this.config.buttonEmoji}</span>
+      `;
+      
+      button.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        background: none;
+        border: none;
+        font-family: inherit;
+        font-size: inherit;
+        color: ${this.config.buttonColor};
+        transition: opacity 0.2s;
+      `;
+
+      const emojiSpan = button.querySelector('.antibot-btn-emoji');
+      if (emojiSpan && this.config.buttonEmojiAnimation) {
+        emojiSpan.style.display = 'inline-block';
+        emojiSpan.style.animation = 'antibot-poke 0.6s ease-in-out infinite';
+      }
+
+      const textSpan = button.querySelector('.antibot-btn-text');
+      if (textSpan) {
+        textSpan.style.textDecoration = 'underline';
+      }
+      
+      button.addEventListener('mouseenter', () => {
+        this.buttonHoverTime = Date.now();
+        button.style.opacity = '0.7';
+      });
+      
+      button.addEventListener('mouseleave', () => {
+        this.buttonHoverTime = null;
+        button.style.opacity = '1';
+      });
+      
+      button.addEventListener('click', async (e) => {
+        if (this.config.mouseTracking) {
+          const validation = this._validateClick(e);
+          this.clickAttempts++;
+          
+          if (!validation.passed) {
+            if (this.clickAttempts >= 3) {
+              alert('Bot behavior detected. Please refresh the page and try moving your mouse naturally.');
+              return;
+            }
+            alert('Please move your mouse naturally before clicking.');
+            return;
+          }
+        }
+        
+        button.remove();
+        
+        if (!this.initialized) {
+          this._renderInstantLoader(container, containerId);
+          await this._waitForInit();
+        }
+        
+        this._renderCaptcha(container);
+      });
+      
+      if (!document.querySelector('style[data-antibot-poke]')) {
+        const style = document.createElement('style');
+        style.setAttribute('data-antibot-poke', 'true');
+        style.textContent = `
+          @keyframes antibot-poke {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            75% { transform: translateX(3px); }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      container.appendChild(button);
+    }
+
+    _renderInstantLoader(container, containerId) {
+      container.innerHTML = '';
+      
+      const loader = document.createElement('div');
+      loader.className = 'antibot-instant-loader';
+      loader.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; opacity: 0.7; color: ${this.config.loaderTextColor};">
           <svg style="animation: antibot-spin 1s linear infinite; height: 1rem; width: 1rem;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
             <path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
           </svg>
-          <span>Initializing...</span>
+          <span>Initializing security...</span>
         </div>
       `;
-      container.style.minHeight = '90px';
-      container.style.position = 'relative';
+      
+      if (!document.querySelector('style[data-antibot-spin]')) {
+        const style = document.createElement('style');
+        style.setAttribute('data-antibot-spin', 'true');
+        style.textContent = '@keyframes antibot-spin { to { transform: rotate(360deg); } }';
+        document.head.appendChild(style);
+      }
+      
+      container.appendChild(loader);
+    }
 
-      // Дождаться инициализации
-      if (!this.initialized) {
+    _waitForInit() {
+      return new Promise((resolve) => {
+        if (this.initialized) {
+          resolve();
+          return;
+        }
+        
         const checkInit = setInterval(() => {
           if (this.initialized) {
             clearInterval(checkInit);
-            this._renderContent(container, containerId);
+            resolve();
           }
         }, 100);
-        return;
-      }
-
-      this._renderContent(container, containerId);
-
+        
+        setTimeout(() => {
+          clearInterval(checkInit);
+          resolve();
+        }, 30000);
+      });
     }
 
     _renderContent(container, containerId) {
-
       while (container && container.firstChild) {
         try {
           container.removeChild(container.firstChild);
@@ -630,11 +792,10 @@
           break;
         }
       }
-  
+
       container.innerHTML = '';
       
-      // Add branding if on free plan
-      if (this.siteConfig.show_branding) {
+      if (this.siteConfig && this.siteConfig.show_branding) {
         this._addBranding(container);
       }
 
@@ -684,7 +845,6 @@
         emojiSpan.style.animation = 'antibot-poke 0.6s ease-in-out infinite';
       }
 
-      // Добавь стиль для текста отдельно
       const textSpan = button.querySelector('.antibot-btn-text');
       if (textSpan) {
         textSpan.style.textDecoration = 'underline';
@@ -703,7 +863,6 @@
       button.addEventListener('click', (e) => {
         if (this.config.mouseTracking) {
           const validation = this._validateClick(e);
-          
           this.clickAttempts++;
           
           if (!validation.passed) {
@@ -724,7 +883,6 @@
     }
 
     _renderCaptcha(container) {
-      // Generate unique ID for real captcha container
       this.realContainerId = `antibot-real-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       const captchaDiv = document.createElement('div');
@@ -737,7 +895,7 @@
       loader.className = 'antibot-loader';
       loader.style.cssText = 'z-index: 1;';
       loader.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; opacity: 0.7;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; opacity: 0.7; color: ${this.config.loaderTextColor};">
           <svg style="animation: antibot-spin 1s linear infinite; height: 1rem; width: 1rem;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
             <path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
@@ -746,7 +904,6 @@
         </div>
       `;
       
-      // Add spin animation
       if (!document.querySelector('style[data-antibot-spin]')) {
         const style = document.createElement('style');
         style.setAttribute('data-antibot-spin', 'true');
@@ -754,7 +911,6 @@
         document.head.appendChild(style);
       }
 
-      // Add poke animation for emoji
       if (!document.querySelector('style[data-antibot-poke]')) {
         const style = document.createElement('style');
         style.setAttribute('data-antibot-poke', 'true');
@@ -771,10 +927,8 @@
       container.insertBefore(loader, container.firstChild);
       container.insertBefore(captchaDiv, container.firstChild);
 
-      // Create random dummy containers
       this._createDummyContainers(container, this.realContainerId);
 
-      // Render captcha
       if (this.currentProvider === 'turnstile') {
         this._renderTurnstile(this.realContainerId, loader);
       } else {
@@ -907,39 +1061,33 @@
 
     destroy() {
       try {
-        // Remove event listeners
-        if (this.config.mouseTracking) {
-          // Сохраните ссылку на обработчик при создании
+        if (this.config.mouseTracking && this._mouseMoveHandler) {
           window.removeEventListener('mousemove', this._mouseMoveHandler);
         }
 
-        // Reset captcha widget
         this.reset();
 
-        // Clear all containers including dummies
-        const containers = document.querySelectorAll('.antibot-container, .antibot-dummy');
+        const containers = document.querySelectorAll('.antibot-container, .antibot-dummy, .antibot-instant-loader');
         containers.forEach(container => {
           if (container && container.parentNode) {
             container.parentNode.removeChild(container);
           }
         });
 
-        // Clear branding
         const branding = document.querySelector('.antibot-branding');
         if (branding && branding.parentNode) {
           branding.parentNode.removeChild(branding);
         }
 
-        // Clear loader
         const loader = document.querySelector('.antibot-loader');
         if (loader && loader.parentNode) {
           loader.parentNode.removeChild(loader);
         }
 
-        // Reset state
         this.widgetId = null;
         this.token = null;
         this.initialized = false;
+        this.pendingRenders = [];
       } catch (error) {
         console.error('Destroy error:', error);
       }
@@ -957,6 +1105,10 @@
       return this.cloakingActive;
     }
 
+    isInitialized() {
+      return this.initialized;
+    }
+
     onSuccess(callback) {
       this.onSuccessCallback = callback;
       return this;
@@ -969,6 +1121,14 @@
 
     onExpire(callback) {
       this.onExpireCallback = callback;
+      return this;
+    }
+
+    onInit(callback) {
+      this.onInitCallback = callback;
+      if (this.initialized) {
+        callback();
+      }
       return this;
     }
   }
