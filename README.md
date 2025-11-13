@@ -2,65 +2,109 @@
 
 Advanced bot protection with captcha verification and intelligent cloaking system.
 
-[![Version](https://img.shields.io/badge/version-1.0.3-blue.svg)](https://github.com/bikmeev/neva-ofm-sdk)
+[![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)](https://github.com/bikmeev/neva-ofm-sdk)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![GitHub](https://img.shields.io/badge/github-bikmeev%2Fneva--ofm--sdk-black.svg)](https://github.com/bikmeev/neva-ofm-sdk)
 
-## Features
+## Table of Contents
 
-- **Dual Captcha Support** - Cloudflare Turnstile & hCaptcha
-- **Intelligent Bot Detection** - Behavioral analysis and fingerprinting
-- **Advanced Cloaking System** - Hide content from bots (premium feature)
-- **BlackTLDs** - Protect from registrator checks for ex. to prevent domain beeng blocked (premium feature)
-- **Mouse Movement Tracking** - Human verification
-- **Random Dummy Containers** - Anti-automation protection
-- **Geographic Blocking** - Country-based restrictions
-- **Device Detection** - Block specific device types
-- **Crawler Detection** - Identify and block web crawlers
-- **Customizable UI** - Light/dark themes and hidden mode
-- **Secure Backend Verification** - JWT token validation
+### [Captcha Protection](#captcha-protection)
+- [What is Captcha Protection?](#what-is-captcha-protection)
+- [Quick Start - Captcha](#quick-start---captcha)
+- [Installation](#installation)
+- [Basic Usage](#basic-usage)
+- [Configuration Options](#configuration-options)
+- [API Reference](#api-reference)
+- [Backend Verification](#backend-verification)
+- [Examples](#captcha-examples)
 
-## Installation
+### [Cloaking Protection](#cloaking-protection)
+- [What is Cloaking?](#what-is-cloaking)
+- [Quick Start - Cloaking](#quick-start---cloaking)
+- [How Cloaking Works](#how-cloaking-works)
+- [Protection Modes](#protection-modes)
+- [Hiding Content](#hiding-content-from-bots)
+- [Dashboard Configuration](#dashboard-configuration)
+- [Examples](#cloaking-examples)
 
-### Step 1: Include the SDK
+### [Additional Resources](#additional-resources)
+- [Combining Captcha + Cloaking](#combining-captcha--cloaking)
+- [Troubleshooting](#troubleshooting)
+- [Pricing](#pricing)
+- [Support](#support)
+- [Changelog](#changelog)
 
-Add the SDK script to your HTML page:
+---
+
+# Captcha Protection
+
+## What is Captcha Protection?
+
+NEVA OFM provides dual captcha support (Cloudflare Turnstile & hCaptcha) with intelligent bot detection features including:
+
+- Behavioral analysis and fingerprinting
+- Mouse movement tracking for human verification
+- Random dummy containers for anti-automation
+- Customizable UI with light/dark themes
+- Secure backend verification with JWT tokens
+
+**Use captcha when you need:**
+- Form protection (login, registration, contact forms)
+- API endpoint protection
+- Action verification (purchases, submissions)
+
+---
+
+## Quick Start - Captcha
+
+### 1. Include SDK
 
 ```html
 <script src="https://cdn.neva-ofm.cc/latest/neva-ofm.js"></script>
 ```
 
-### Step 2: Create Container
-
-Add a container element where the captcha will be rendered:
+### 2. Create Container
 
 ```html
 <div id="antibot-container"></div>
 ```
 
-### Step 3: Get Your Site Key
+### 3. Get Site Key
 
 1. Register at [neva-ofm.cc](https://neva-ofm.cc)
-2. Create a new site and configure your captcha provider keys
-3. Copy your site key (starts with `abs_`)
+2. Create a new site
+3. Configure your captcha provider keys (Turnstile/hCaptcha)
+4. Copy your site key (starts with `abs_`)
 
-### Step 4: Configure Captcha Provider
+### 4. Configure Captcha Provider
 
-**IMPORTANT:** You must add `api.neva-ofm.cc` to your allowed domains in your captcha provider dashboard.
+**IMPORTANT:** Add `api.neva-ofm.cc` to your captcha provider's allowed domains:
 
-#### For Cloudflare Turnstile:
+**For Cloudflare Turnstile:**
 1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com/) → Turnstile
 2. Select your site
-3. Add both `api.neva-ofm.cc` and your own domain to "Domains"
+3. Add both `api.neva-ofm.cc` and your domain to "Domains"
 
-#### For hCaptcha:
+**For hCaptcha:**
 1. Go to [hCaptcha Dashboard](https://dashboard.hcaptcha.com/)
 2. Go to Settings → Domains
-3. Add both `api.neva-ofm.cc` and your own domain
+3. Add both `api.neva-ofm.cc` and your domain
 
-## Quick Start
+---
 
-### Basic Usage
+## Installation
+
+No installation required! Just include the CDN script:
+
+```html
+<script src="https://cdn.neva-ofm.cc/latest/neva-ofm.js"></script>
+```
+
+---
+
+## Basic Usage
+
+### Simple Captcha
 
 ```html
 <!DOCTYPE html>
@@ -69,44 +113,48 @@ Add a container element where the captcha will be rendered:
   <script src="https://cdn.neva-ofm.cc/latest/neva-ofm.js"></script>
 </head>
 <body>
-  <div id="antibot-container"></div>
+  <form id="myForm">
+    <input type="email" placeholder="Email">
+    
+    <!-- Captcha will appear here -->
+    <div id="antibot-container"></div>
+    
+    <button type="submit">Submit</button>
+  </form>
 
   <script>
-    // Initialize AntiBot
+    // Initialize
     const antibot = new AntiBot('abs_your_site_key_here');
     
     // Render captcha
     antibot.render('antibot-container');
     
-    // Handle successful verification
+    // Handle success
     antibot.onSuccess(async (token) => {
       console.log('Captcha solved!', token);
       
       // Verify on backend
       const verifyToken = await antibot.verify();
-      console.log('Verification token:', verifyToken);
       
-      // Submit your form or perform protected action
+      // Submit form
       document.getElementById('myForm').submit();
     });
     
     // Handle errors
     antibot.onError((error) => {
-      console.error('AntiBot error:', error);
+      console.error('Error:', error);
     });
   </script>
 </body>
 </html>
 ```
 
-### Hidden Captcha Mode
-
-Hide the captcha behind a button with mouse tracking:
+### Hidden Captcha Mode (Recommended)
 
 ```javascript
 const antibot = new AntiBot('abs_your_site_key_here', {
   hideCaptcha: true,
-  buttonText: 'Click here to verify',
+  buttonText: 'Click to verify you are human',
   buttonEmoji: '🔒',
   mouseTracking: true
 });
@@ -119,6 +167,10 @@ antibot.onSuccess(async (token) => {
 });
 ```
 
+[↑ Back to Top](#-table-of-contents)
+
+---
+
 ## Configuration Options
 
 ```javascript
@@ -130,10 +182,12 @@ const antibot = new AntiBot('abs_your_site_key', {
   size: 'normal',                            // 'normal' or 'compact'
   language: 'auto',                          // Language code or 'auto'
   
-  // Hidden Mode
-  hideCaptcha: false,                        // Hide captcha behind button
+  // Hidden Mode (Recommended)
+  hideCaptcha: true,                         // Hide captcha behind button
   buttonText: 'Press here to see captcha',  // Button text
   buttonEmoji: '👈',                         // Button emoji
+  buttonColor: 'white',                      // Button text color
+  buttonEmojiAnimation: true,                // Enable emoji animation
   
   // Protection Features
   mouseTracking: true,                       // Enable mouse movement analysis
@@ -141,11 +195,20 @@ const antibot = new AntiBot('abs_your_site_key', {
   minDummyContainers: 2,                     // Minimum dummy containers
   maxDummyContainers: 5,                     // Maximum dummy containers
   
+  // Performance
+  instantRender: true,                       // Show UI immediately (v1.0.5)
+  preloadBothProviders: false,               // Load both scripts in parallel
+  loaderTextColor: 'white',                  // Loader text color
+  
   // Advanced
   retryAttempts: 3,                          // Verification retry attempts
   timeout: 30000                             // Request timeout (ms)
 });
 ```
+
+[↑ Back to Top](#-table-of-contents)
+
+---
 
 ## API Reference
 
@@ -153,61 +216,14 @@ const antibot = new AntiBot('abs_your_site_key', {
 
 #### `new AntiBot(siteKey, options)`
 
-Creates a new AntiBot instance and initializes the protection system.
-
-**Parameters:**
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `siteKey` | string | Yes | Your site key from NEVA OFM dashboard (starts with `abs_`) |
-| `options` | object | No | Configuration options object |
-
-**Options Object:**
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `theme` | string | `'light'` | Captcha theme: `'light'` or `'dark'` |
-| `captchaProvider` | string | `'both'` | Provider selection: `'turnstile'`, `'hcaptcha'`, or `'both'` (random) |
-| `size` | string | `'normal'` | Captcha size: `'normal'` or `'compact'` |
-| `language` | string | `'auto'` | Language code (e.g., `'en'`, `'ru'`) or `'auto'` |
-| `hideCaptcha` | boolean | `true` | Hide captcha behind a button (reccomended true)|
-| `buttonText` | string | `'Press here to see captcha'` | Button text when `hideCaptcha: true` |
-| `buttonEmoji` | string | `'👈'` | Emoji displayed on button |
-| `buttonColor` | string | `'white'` | Button text color (CSS color value) |
-| `buttonEmojiAnimation` | boolean | `true` | Enable poke animation for button emoji |
-| `mouseTracking` | boolean | `true` | Enable mouse movement analysis for bot detection |
-| `randomContainers` | boolean | `true` | Create random dummy containers to confuse automation (reccomended true) |
-| `minDummyContainers` | number | `2` | Minimum number of dummy containers |
-| `maxDummyContainers` | number | `5` | Maximum number of dummy containers |
-| `instantRender` | boolean | `true` | Show UI immediately without waiting for initialization (NEW v1.0.5) |
-| `preloadBothProviders` | boolean | `false` | Load both Turnstile and hCaptcha scripts in parallel |
-| `loaderTextColor` | string | `'white'` | Color of loader text (CSS color value) |
-
-| `retryAttempts` | number | `3` | Number of retry attempts for failed requests |
-| `timeout` | number | `30000` | Request timeout in milliseconds |
-
-**Example:**
+Creates a new AntiBot instance.
 
 ```javascript
-// Basic initialization
-const antibot = new AntiBot('abs_your_site_key_here');
-
-// With options
 const antibot = new AntiBot('abs_your_site_key_here', {
   theme: 'dark',
-  hideCaptcha: true,
-  buttonText: 'Verify you are human',
-  buttonEmoji: '🔐',
-  buttonColor: '#ffffff',
-  mouseTracking: true,
-  captchaProvider: 'turnstile'
+  hideCaptcha: true
 });
 ```
-
-**Throws:**
-- `Error` - If siteKey is not provided
-- `Error` - If no captcha provider is configured
-- `Error` - If domain is not authorized
 
 ---
 
@@ -215,578 +231,111 @@ const antibot = new AntiBot('abs_your_site_key_here', {
 
 #### `render(containerId)`
 
-Renders the captcha widget in the specified container element.
-
-**Parameters:**
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `containerId` | string | Yes | ID of the HTML element where captcha will be rendered |
-
-**Returns:** `void`
-
-**Example:**
+Renders the captcha widget.
 
 ```javascript
-const antibot = new AntiBot('abs_your_site_key_here');
-
-// Render in container with ID "antibot-container"
 antibot.render('antibot-container');
 ```
-
-**HTML:**
-```html
-<div id="antibot-container"></div>
-```
-
-**Throws:**
-- `Error` - If SDK is not initialized yet
-- `Error` - If container element is not found
-- Logs warning if user is blocked by cloaking
 
 ---
 
 #### `verify()`
 
-Verifies the captcha token on the backend and returns a JWT token for your server-side verification.
-
-**Parameters:** None
-
-**Returns:** `Promise<string>` - JWT verification token
-
-**Example:**
+Verifies the captcha and returns JWT token.
 
 ```javascript
 antibot.onSuccess(async (captchaToken) => {
-  try {
-    // Verify and get JWT token
-    const jwtToken = await antibot.verify();
-    
-    console.log('JWT Token:', jwtToken);
-    
-    // Send to your backend
-    const response = await fetch('/api/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        verifyToken: jwtToken,
-        // ... other form data
-      })
-    });
-    
-    const result = await response.json();
-    console.log('Backend response:', result);
-  } catch (error) {
-    console.error('Verification failed:', error);
-  }
+  const jwtToken = await antibot.verify();
+  console.log('JWT Token:', jwtToken);
 });
 ```
-
-**Throws:**
-- `Error` - If no captcha token is available (captcha not completed)
-- `Error` - If verification request fails
-- `Error` - If backend returns an error
 
 ---
 
 #### `reset()`
 
-Resets the captcha widget to its initial state. Clears the current token and reloads the captcha challenge.
-
-**Parameters:** None
-
-**Returns:** `void`
-
-**Example:**
+Resets the captcha to initial state.
 
 ```javascript
-const antibot = new AntiBot('abs_your_site_key_here');
-antibot.render('antibot-container');
-
-// Reset after form submission error
-document.getElementById('myForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  try {
-    const token = await antibot.verify();
-    const response = await fetch('/api/submit', {
-      method: 'POST',
-      body: JSON.stringify({ verifyToken: token })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Submission failed');
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    // Reset captcha on error
-    antibot.reset();
-    alert('Please try again');
-  }
-});
-
-// Auto-reset on token expiration
-antibot.onExpire(() => {
-  antibot.reset();
-});
+antibot.reset();
 ```
 
 ---
 
 #### `getToken()`
 
-Returns the current captcha token without verification. Returns `null` if captcha has not been completed yet.
-
-**Parameters:** None
-
-**Returns:** `string | null` - Current captcha token or null
-
-**Example:**
+Returns current captcha token or null.
 
 ```javascript
-const antibot = new AntiBot('abs_your_site_key_here');
-antibot.render('antibot-container');
-
-antibot.onSuccess((token) => {
-  // Get token directly
-  const currentToken = antibot.getToken();
-  console.log('Token:', currentToken);
-  
-  // Check if token exists before form submission
-  const submitButton = document.getElementById('submitBtn');
-  submitButton.disabled = !currentToken;
-});
-
-// Check token on form submit
-document.getElementById('myForm').addEventListener('submit', (e) => {
-  const token = antibot.getToken();
-  
-  if (!token) {
-    e.preventDefault();
-    alert('Please complete the captcha first');
-  }
-});
-```
-
----
-
-#### `isUserBlocked()`
-
-Returns whether the current user is blocked by the cloaking system.
-
-**Parameters:** None
-
-**Returns:** `boolean` - `true` if user is blocked, `false` otherwise
-
-**Example:**
-
-```javascript
-const antibot = new AntiBot('abs_your_site_key_here');
-
-// Check if user is blocked
-if (antibot.isUserBlocked()) {
-  console.log('User is blocked by cloaking system');
-  // User will see fallback page automatically
-} else {
-  console.log('User is allowed');
-  antibot.render('antibot-container');
-}
-
-// You can also check this after initialization
-setTimeout(() => {
-  if (!antibot.isUserBlocked()) {
-    // Show additional content
-    document.getElementById('content').style.display = 'block';
-  }
-}, 1000);
-```
-
----
-
-#### `isCloakingActive()`
-
-Returns whether the cloaking protection system is active for this site.
-
-**Parameters:** None
-
-**Returns:** `boolean` - `true` if cloaking is active, `false` otherwise
-
-**Example:**
-
-```javascript
-const antibot = new AntiBot('abs_your_site_key_here');
-
-// Check if cloaking is active
-if (antibot.isCloakingActive()) {
-  console.log('Advanced protection is enabled');
-  // Elements with .bot-hide class are being hidden
-} else {
-  console.log('Basic captcha verification only');
-}
+const token = antibot.getToken();
 ```
 
 ---
 
 #### `onSuccess(callback)`
 
-Registers a callback function that will be called when the captcha is successfully completed by the user.
-
-**Parameters:**
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `callback` | function | Yes | Callback function that receives the captcha token |
-
-**Callback Parameters:**
-- `token` (string) - The captcha token returned by the provider (Turnstile or hCaptcha)
-
-**Returns:** `this` (for method chaining)
-
-**Example:**
+Called when captcha is completed.
 
 ```javascript
-const antibot = new AntiBot('abs_your_site_key_here');
-antibot.render('antibot-container');
-
-// Register success handler
-antibot.onSuccess(async (captchaToken) => {
-  console.log('Captcha completed!');
-  console.log('Captcha Token:', captchaToken);
-  
-  // Show success message
-  document.getElementById('status').textContent = 'Verifying...';
-  
-  try {
-    // Verify on backend
-    const jwtToken = await antibot.verify();
-    
-    // Submit form
-    const formData = new FormData(document.getElementById('myForm'));
-    const response = await fetch('/api/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        verifyToken: jwtToken,
-        ...Object.fromEntries(formData)
-      })
-    });
-    
-    if (response.ok) {
-      document.getElementById('status').textContent = 'Success!';
-      window.location.href = '/success';
-    } else {
-      throw new Error('Submission failed');
-    }
-  } catch (error) {
-    document.getElementById('status').textContent = 'Error';
-    console.error(error);
-  }
+antibot.onSuccess((token) => {
+  console.log('Success!', token);
 });
-
-// Method chaining
-antibot
-  .onSuccess((token) => console.log('Success:', token))
-  .onError((error) => console.error('Error:', error))
-  .onExpire(() => console.log('Expired'));
-```
-
----
-
-#### `onInit(callback)`
-
-Registers a callback function that will be called when the SDK has fully initialized and is ready to use.
-
-**Parameters:**
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `callback` | function | Yes | Callback function called when SDK is ready |
-
-**Callback Parameters:** None
-
-**Returns:** `this` (for method chaining)
-
-**Example:**
-```javascript
-const antibot = new AntiBot('abs_your_site_key_here');
-
-antibot.onInit(() => {
-  console.log('SDK is fully initialized and ready!');
-  
-  // Now safe to call methods
-  antibot.render('antibot-container');
-  
-  // Enable form submission
-  document.getElementById('submitBtn').disabled = false;
-});
-
-// The callback fires immediately if SDK is already initialized
-setTimeout(() => {
-  antibot.onInit(() => {
-    console.log('This fires immediately if SDK already ready');
-  });
-}, 5000);
-```
-
----
-
-#### `isInitialized()`
-
-Returns whether the SDK has completed initialization and is ready to use.
-
-**Parameters:** None
-
-**Returns:** `boolean` - `true` if SDK is initialized, `false` otherwise
-
-**Example:**
-```javascript
-const antibot = new AntiBot('abs_your_site_key_here');
-
-// Check if ready
-if (antibot.isInitialized()) {
-  console.log('SDK is ready');
-  antibot.render('antibot-container');
-} else {
-  console.log('SDK still initializing...');
-  
-  // Wait for initialization
-  antibot.onInit(() => {
-    antibot.render('antibot-container');
-  });
-}
-
-// Polling example
-const checkInterval = setInterval(() => {
-  if (antibot.isInitialized()) {
-    clearInterval(checkInterval);
-    console.log('SDK ready!');
-  }
-}, 100);
 ```
 
 ---
 
 #### `onError(callback)`
 
-Registers a callback function that will be called when an error occurs during captcha rendering or verification.
-
-**Parameters:**
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `callback` | function | Yes | Callback function that receives the error object |
-
-**Callback Parameters:**
-- `error` (Error) - The error object with details about what went wrong
-
-**Returns:** `this` (for method chaining)
-
-**Example:**
+Called when an error occurs.
 
 ```javascript
-const antibot = new AntiBot('abs_your_site_key_here');
-antibot.render('antibot-container');
-
-// Register error handler
 antibot.onError((error) => {
-  console.error('AntiBot Error:', error);
-  
-  // Show user-friendly message
-  const errorDiv = document.getElementById('error-message');
-  errorDiv.style.display = 'block';
-  errorDiv.textContent = 'Verification failed. Please refresh and try again.';
-  
-  // Log to monitoring service
-  fetch('/api/log-error', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      error: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent
-    })
-  });
-  
-  // Hide loading indicator
-  document.getElementById('loading').style.display = 'none';
-  
-  // Enable retry button
-  document.getElementById('retryBtn').style.display = 'block';
-});
-
-// Retry functionality
-document.getElementById('retryBtn').addEventListener('click', () => {
-  antibot.reset();
-  document.getElementById('error-message').style.display = 'none';
-  document.getElementById('retryBtn').style.display = 'none';
+  console.error('Error:', error);
 });
 ```
-
-**Common Errors:**
-- `"No captcha token available"` - User hasn't completed captcha
-- `"Failed to load [provider] script"` - Captcha provider script couldn't load
-- `"Domain not authorized"` - Domain not added in dashboard
-- `"Verification failed"` - Backend verification rejected the token
 
 ---
 
 #### `onExpire(callback)`
 
-Registers a callback function that will be called when the captcha token expires. Captcha tokens typically expire after a few minutes.
-
-**Parameters:**
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `callback` | function | Yes | Callback function called on token expiration |
-
-**Callback Parameters:** None
-
-**Returns:** `this` (for method chaining)
-
-**Example:**
+Called when captcha token expires.
 
 ```javascript
-const antibot = new AntiBot('abs_your_site_key_here');
-antibot.render('antibot-container');
-
-// Register expiration handler
 antibot.onExpire(() => {
-  console.log('Captcha token expired');
-  
-  // Auto-reset captcha
+  console.log('Token expired');
   antibot.reset();
-  
-  // Notify user
-  const notification = document.createElement('div');
-  notification.className = 'notification warning';
-  notification.textContent = 'Verification expired. Please complete the captcha again.';
-  document.body.appendChild(notification);
-  
-  // Remove notification after 5 seconds
-  setTimeout(() => notification.remove(), 5000);
-  
-  // Disable submit button until re-verified
-  document.getElementById('submitBtn').disabled = true;
-});
-
-// Re-enable submit button on success
-antibot.onSuccess(() => {
-  document.getElementById('submitBtn').disabled = false;
 });
 ```
-
-**Best Practices:**
-- Always reset the captcha on expiration
-- Notify users that they need to verify again
-- Disable form submission until re-verified
-- Consider implementing auto-refresh if user is still on the page
-
-### Performance
-
-- Enable `instantRender: true` for zero-delay UI (default in v1.0.5)
-- Use `preloadBothProviders: true` if you need fastest first captcha load
-- Load SDK asynchronously to avoid blocking page render
-- Use `onInit()` callback to detect when SDK is fully ready
-- Enable `randomContainers` for anti-automation
-- Cache verification results on backend (with short TTL)
 
 ---
 
-## Cloaking & Advanced Protection
+#### `onInit(callback)`
 
-> **Note:** Cloaking features are only available on paid plans (5 domains or 10 domains). Configure settings in your NEVA OFM dashboard.
+Called when SDK is fully initialized.
 
-### What is our Cloaking?
-
-Cloaking is an advanced protection system that detects and blocks bots, crawlers, and suspicious traffic before they see your content. The system analyzes:
-
-- User agent patterns and browser fingerprints
-- WebDriver detection (Selenium, Puppeteer, etc.)
-- Geographic location
-- Device type (mobile, tablet, desktop)
-- Operating system version
-- Known crawler signatures
-
-### Protection Modes
-
-Configure the protection mode in your dashboard:
-
-- **Standard Mode** - Blocks obvious bots and old Windows versions (XP, Vista, 7)
-- **Moderate Mode** - Blocks suspicious traffic with 3+ bot indicators
-- **Aggressive Mode** - Blocks traffic with 2+ bot indicators (strictest)
-
-### Hide Elements from Bots
-
-Add the `bot-hide` class to elements you want to hide from bots:
-
-```html
-<!-- Hide logo from bots -->
-<img src="/logo.png" class="bot-hide" alt="Logo">
-
-<!-- Hide login form from bots -->
-<form class="bot-hide" id="loginForm">
-  <input type="email" name="email" placeholder="Email">
-  <input type="password" name="password" placeholder="Password">
-  <button type="submit">Login</button>
-</form>
-
-<!-- Hide contact information -->
-<div class="bot-hide">
-  <p>Email: contact@example.com</p>
-  <p>Phone: +1234567890</p>
-</div>
+```javascript
+antibot.onInit(() => {
+  console.log('SDK ready!');
+});
 ```
 
-> **Recommended:** Hide logos, login forms, contact information, and any sensitive content from bots to prevent automated attacks and scraping.
+---
 
-### Custom Selector
+#### `isInitialized()`
 
-Configure a custom CSS selector in your dashboard:
+Returns whether SDK is ready.
 
-```html
-<!-- Dashboard setting: hide_elements_selector = ".protected" -->
-<div class="protected">
-  This content is hidden from bots
-</div>
-
-<!-- Or use data attributes -->
-<!-- Dashboard setting: hide_elements_selector = "[data-bot-hide]" -->
-<section data-bot-hide>
-  Protected content here
-</section>
+```javascript
+if (antibot.isInitialized()) {
+  antibot.render('antibot-container');
+}
 ```
 
-### Dashboard Configuration
+[↑ Back to Top](#-table-of-contents)
 
-Configure cloaking settings in your NEVA OFM dashboard:
-
-- **Protection Mode** - Choose standard, moderate, or aggressive
-- **Blocked Countries** - List of country codes to block (e.g., US, RU, CN)
-- **Blocked Devices** - Select mobile, tablet, or desktop
-- **Block Crawlers** - Enable/disable crawler blocking
-- **Fallback Page** - URL or HTML content to show blocked users
-- **Hide Selector** - CSS selector for elements to hide (default: `.bot-hide`)
-
-### Fallback Page
-
-Create a safe landing page for blocked visitors:
-
-```html
-<!-- Option 1: Redirect to another URL -->
-<!-- Dashboard setting: fallback_page_url = "https://example.com/safe-page" -->
-
-<!-- Option 2: Inline HTML content -->
-<!-- Dashboard setting: fallback_page_url = "<div style='text-align:center; padding:50px;'>
-  <h1>Welcome</h1>
-  <p>This is a safe landing page.</p>
-</div>" -->
-```
+---
 
 ## Backend Verification
-
-Always verify tokens on your backend server for security.
 
 ### Verification Endpoint
 
@@ -795,12 +344,12 @@ Always verify tokens on your backend server for security.
 **Request:**
 ```json
 {
-  "secret": "secret_your_secret_key_from_neva_ofm_dashboard",
+  "secret": "secret_your_secret_key",
   "token": "eyJhbGc..."
 }
 ```
 
-**Response (Success):**
+**Response:**
 ```json
 {
   "success": true,
@@ -810,15 +359,7 @@ Always verify tokens on your backend server for security.
 }
 ```
 
-**Response (Error):**
-```json
-{
-  "success": false,
-  "error-codes": ["invalid-input-response"]
-}
-```
-
-### Node.js / Express Example
+### Node.js Example
 
 ```javascript
 app.post('/api/submit', async (req, res) => {
@@ -828,7 +369,7 @@ app.post('/api/submit', async (req, res) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      secret: process.env.NEVA_OFM_SECRET,  // From dashboard
+      secret: process.env.NEVA_OFM_SECRET,
       token: verifyToken
     })
   });
@@ -836,10 +377,8 @@ app.post('/api/submit', async (req, res) => {
   const result = await response.json();
   
   if (result.success) {
-    // Token is valid - process request
     res.json({ success: true });
   } else {
-    // Token is invalid - reject request
     res.status(403).json({ error: 'Invalid verification' });
   }
 });
@@ -865,67 +404,55 @@ $response = file_get_contents('https://api.neva-ofm.cc/api/siteverify', false, s
 $result = json_decode($response, true);
 
 if ($result['success']) {
-  // Token is valid
   echo json_encode(['success' => true]);
 } else {
-  // Token is invalid
   http_response_code(403);
   echo json_encode(['error' => 'Invalid verification']);
 }
 ?>
 ```
 
-## Advanced Examples
+[↑ Back to Top](#-table-of-contents)
 
-### Complete Example with All Features
+---
+
+## Captcha Examples
+
+### Complete Login Form
 
 ```html
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Protected Form</title>
   <script src="https://cdn.neva-ofm.cc/latest/neva-ofm.js"></script>
 </head>
 <body>
-  <!-- Logo - hidden from bots -->
-  <img src="/logo.png" class="bot-hide" alt="Logo">
-  
-  <!-- Login form - hidden from bots -->
-  <form id="loginForm" class="bot-hide">
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Password">
+  <form id="loginForm">
+    <input type="email" id="email" placeholder="Email" required>
+    <input type="password" id="password" placeholder="Password" required>
     
-    <!-- Captcha container -->
     <div id="antibot-container"></div>
     
     <button type="submit">Login</button>
   </form>
 
   <script>
-    // Initialize with custom settings
     const antibot = new AntiBot('abs_your_site_key_here', {
       theme: 'dark',
       hideCaptcha: true,
       buttonText: 'Verify you are human',
       buttonEmoji: '🔐',
-      mouseTracking: true,
-      randomContainers: true,
-      captchaProvider: 'both'
+      mouseTracking: true
     });
 
-    // Render captcha
     antibot.render('antibot-container');
 
-    // Handle form submission
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
       try {
-        // Verify captcha
         const verifyToken = await antibot.verify();
         
-        // Submit to backend
         const response = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -941,29 +468,25 @@ if ($result['success']) {
         if (result.success) {
           window.location.href = '/dashboard';
         } else {
-          alert('Login failed: ' + result.error);
+          alert('Login failed');
           antibot.reset();
         }
       } catch (error) {
-        console.error('Verification error:', error);
+        console.error(error);
         alert('Please complete the captcha');
       }
     });
 
-    // Handle success
-    antibot.onSuccess((token) => {
+    antibot.onSuccess(() => {
       console.log('Captcha completed!');
     });
 
-    // Handle errors
     antibot.onError((error) => {
-      console.error('AntiBot error:', error);
+      console.error('Error:', error);
       alert('Verification failed. Please try again.');
     });
 
-    // Handle expiration
     antibot.onExpire(() => {
-      console.log('Token expired, resetting...');
       antibot.reset();
     });
   </script>
@@ -977,17 +500,16 @@ if ($result['success']) {
 'use client';
 import { useEffect, useRef, useState } from 'react';
 
-export default function ProtectedForm() {
+export default function CaptchaForm() {
   const antibotRef = useRef(null);
   const [verified, setVerified] = useState(false);
 
   useEffect(() => {
-    // Load SDK
     const script = document.createElement('script');
     script.src = 'https://cdn.neva-ofm.cc/latest/neva-ofm.js';
     script.async = true;
+    
     script.onload = () => {
-      // Initialize AntiBot
       antibotRef.current = new window.AntiBot('abs_your_site_key_here', {
         theme: 'dark',
         hideCaptcha: true
@@ -999,6 +521,7 @@ export default function ProtectedForm() {
         setVerified(true);
       });
     };
+    
     document.head.appendChild(script);
 
     return () => {
@@ -1014,24 +537,20 @@ export default function ProtectedForm() {
       return;
     }
     
-    try {
-      const token = await antibotRef.current.verify();
-      
-      const response = await fetch('/api/submit', {
-        method: 'POST',
-        body: JSON.stringify({ verifyToken: token }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      const result = await response.json();
-      console.log(result);
-    } catch (error) {
-      console.error(error);
-    }
+    const token = await antibotRef.current.verify();
+    
+    const response = await fetch('/api/submit', {
+      method: 'POST',
+      body: JSON.stringify({ verifyToken: token }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const result = await response.json();
+    console.log(result);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bot-hide">
+    <form onSubmit={handleSubmit}>
       <input type="email" placeholder="Email" />
       <div id="antibot-container"></div>
       <button type="submit">Submit</button>
@@ -1040,199 +559,513 @@ export default function ProtectedForm() {
 }
 ```
 
-### Multiple Captchas on Same Page
+[↑ Back to Top](#-table-of-contents)
 
-```javascript
-// Login form captcha
-const loginAntibot = new AntiBot('abs_your_site_key_here');
-loginAntibot.render('login-captcha');
+---
 
-// Register form captcha
-const registerAntibot = new AntiBot('abs_your_site_key_here');
-registerAntibot.render('register-captcha');
+# Cloaking Protection
 
-// Login submit
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const token = await loginAntibot.verify();
-  // Submit with token...
-});
+## What is Cloaking?
 
-// Register submit
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const token = await registerAntibot.verify();
-  // Submit with token...
-});
+> **Premium Feature** - Available on paid plans (5 or 10 domains)
+
+Cloaking is an advanced protection system that **automatically** detects and blocks bots, crawlers, and suspicious traffic **before they see your content**. No captcha needed!
+
+It can use out antiRED protection and prevent domain beeing blocked.
+
+**Perfect for:**
+- Landing pages
+- Affiliate offers
+- Private content
+- Preventing scrapers
+- Blocking competitors
+
+**The system analyzes:**
+- User agent patterns and browser fingerprints
+- WebDriver detection (Selenium, Puppeteer, etc.)
+- Geographic location
+- Device type (mobile, tablet, desktop)
+- Operating system version
+- Known crawler signatures
+
+---
+
+## Quick Start - Cloaking
+
+### 1. Include SDK
+
+```html
+<script src="https://cdn.neva-ofm.cc/latest/neva-ofm.js"></script>
 ```
 
-### Error Handling
+### 2. Initialize (No Container Needed!)
 
-```javascript
-const antibot = new AntiBot('abs_your_site_key_here');
-
-antibot.onError((error) => {
-  // Log error for debugging
-  console.error('AntiBot Error:', error);
+```html
+<script>
+  // Just initialize - no render() needed!
+  const antibot = new AntiBot('abs_your_site_key_here');
   
-  // Show user-friendly message
-  const errorDiv = document.getElementById('error-message');
-  errorDiv.textContent = 'Verification failed. Please refresh and try again.';
-  errorDiv.style.display = 'block';
+  // Optional: Check if user is blocked
+  if (antibot.isUserBlocked()) {
+    console.log('User blocked by cloaking');
+  }
+</script>
+```
+
+### 3. Hide Content from Bots
+
+Add `bot-hide` class to elements:
+
+```html
+<!-- Hide logo -->
+<img src="/logo.png" class="bot-hide" alt="Logo">
+
+<!-- Hide login form -->
+<form class="bot-hide">
+  <input type="email" placeholder="Email">
+  <input type="password" placeholder="Password">
+  <button type="submit">Login</button>
+</form>
+
+<!-- Hide contact info -->
+<div class="bot-hide">
+  <p>Email: contact@example.com</p>
+  <p>Phone: +1234567890</p>
+</div>
+```
+
+### 4. Configure in Dashboard
+
+1. Go to [NEVA OFM Dashboard](https://neva-ofm.cc/dashboard)
+2. Enable cloaking for your site
+3. Choose protection mode (standard/moderate/aggressive)
+4. Set blocked countries/devices (optional)
+5. Configure fallback page
+
+**That's it!** Cloaking works automatically. No `render()`, no containers, no callbacks needed.
+
+[↑ Back to Top](#-table-of-contents)
+
+---
+
+## How Cloaking Works
+
+### Automatic Bot Detection
+
+When a user visits your page, NEVA OFM automatically:
+
+1. **Analyzes the visitor** - Checks user agent, fingerprint, behavior
+2. **Scores the traffic** - Assigns risk score based on detection rules
+3. **Blocks if suspicious** - Shows fallback page to detected bots
+4. **Hides content** - Elements with `.bot-hide` are invisible to bots
+5. **Shows real content** - Legitimate users see everything normally
+
+### Detection Methods
+
+| Method | Description | Score Weight |
+|--------|-------------|--------------|
+| **WebDriver** | Detects Selenium, Puppeteer | High (3 points) |
+| **User Agent** | Known bot patterns | Medium (2 points) |
+| **Fingerprint** | Browser inconsistencies | Low (1 point) |
+| **Geo Location** | Blocked countries | Instant block |
+| **Old Windows** | XP, Vista, 7 | Instant block |
+| **Crawler** | Google, Bing bots | Configurable |
+
+---
+
+## Protection Modes
+
+Configure in your dashboard:
+
+### Standard Mode (Recommended)
+
+Blocks obvious bots and old Windows versions.
+
+```
+Blocks when:
+- Definite bot detected (WebDriver, automation tools)
+- Old Windows (XP, Vista, 7)
+- Known crawlers (if enabled)
+```
+
+**Best for:** Most websites, balanced protection
+
+---
+
+### Moderate Mode
+
+Stricter protection with scoring system.
+
+```
+Blocks when:
+- Bot score ≥ 3 points
+- Old Windows versions
+- Blocked countries/devices
+```
+
+**Best for:** Sensitive content, higher security needs
+
+---
+
+### Aggressive Mode
+
+Maximum protection, strictest rules.
+
+```
+Blocks when:
+- Bot score ≥ 2 points
+- Any suspicious indicator
+- Old Windows versions
+- Blocked countries/devices
+```
+
+**Best for:** High-value offers, maximum bot prevention
+
+[↑ Back to Top](#-table-of-contents)
+
+---
+
+## Hiding Content from Bots
+
+### Using `.bot-hide` Class (Default)
+
+```html
+<!-- Hide logo -->
+<img src="/logo.png" class="bot-hide" alt="Logo">
+
+<!-- Hide entire section -->
+<section class="bot-hide">
+  <h2>Premium Content</h2>
+  <p>This is only visible to real users.</p>
+</section>
+
+<!-- Hide inline elements -->
+<p>Public text <span class="bot-hide">secret info</span> more public text</p>
+```
+
+### Custom Selector
+
+Configure in dashboard: `hide_elements_selector = ".protected"`
+
+```html
+<div class="protected">
+  This content is hidden from bots
+</div>
+
+<!-- Or use data attributes -->
+<!-- Dashboard: hide_elements_selector = "[data-bot-hide]" -->
+<section data-bot-hide>
+  Protected content here
+</section>
+```
+
+### What to Hide
+
+**Recommended to hide:**
+- Logos and branding
+- Login/registration forms
+- Contact information (email, phone)
+- Affiliate links
+- Pricing information
+- Download buttons
+- API endpoints
+- Admin panels
+
+**Not recommended:**
+- SEO-critical content
+- Navigation menus
+- Footer information
+- Public blog posts
+
+---
+
+## Dashboard Configuration
+
+### Settings Overview
+
+| Setting | Description | Example |
+|---------|-------------|---------|
+| **Protection Mode** | standard/moderate/aggressive | `moderate` |
+| **Blocked Countries** | ISO country codes to block | `US, RU, CN` |
+| **Blocked Devices** | Device types to block | `mobile, tablet` |
+| **Block Crawlers** | Block known search engines | `true/false` |
+| **Hide Selector** | CSS selector for hidden elements | `.bot-hide` |
+| **Fallback Page** | URL or HTML for blocked users | See below |
+
+### Fallback Page Options
+
+**Option 1: Redirect URL**
+```
+fallback_page_url = "https://example.com/safe-page"
+```
+
+**Option 2: Inline HTML**
+```html
+fallback_page_url = "
+<div style='text-align:center; padding:50px;'>
+  <h1>Welcome</h1>
+  <p>Thanks for visiting!</p>
+  <p>This page is protected.</p>
+</div>
+"
+```
+
+**Option 3: Default (No Fallback Set)**
+- Shows generic "Access Denied" page
+- Displays NEVA OFM branding
+
+[↑ Back to Top](#-table-of-contents)
+
+---
+
+## Cloaking Examples
+
+### Basic Landing Page Protection
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Landing Page</title>
+  <script src="https://cdn.neva-ofm.cc/latest/neva-ofm.js"></script>
+</head>
+<body>
+  <!-- Logo - hidden from bots -->
+  <img src="/logo.png" class="bot-hide" alt="Logo">
   
-  // Optional: Send error to monitoring service
-  fetch('/api/log-error', {
-    method: 'POST',
-    body: JSON.stringify({ 
-      error: error.message, 
-      timestamp: new Date() 
-    })
-  });
-});
-
-antibot.onExpire(() => {
-  // Auto-reset on expiration
-  antibot.reset();
+  <!-- Main content - visible to all -->
+  <h1>Welcome to Our Service</h1>
+  <p>Public description goes here...</p>
   
-  // Notify user
-  alert('Verification expired. Please complete the captcha again.');
-});
+  <!-- CTA - hidden from bots -->
+  <div class="bot-hide">
+    <button onclick="location.href='/signup'">Get Started</button>
+    <p>Special Offer: 50% off!</p>
+  </div>
+  
+  <!-- Contact - hidden from bots -->
+  <footer class="bot-hide">
+    <p>Email: support@example.com</p>
+    <p>Phone: +1-234-567-8900</p>
+  </footer>
 
-// Verify with timeout
-async function verifyWithTimeout(timeoutMs = 30000) {
-  return Promise.race([
-    antibot.verify(),
-    new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Verification timeout')), timeoutMs)
-    )
-  ]);
-}
+  <script>
+    // Initialize cloaking
+    const antibot = new AntiBot('abs_your_site_key_here');
+    
+    // Optional: Check status
+    console.log('Cloaking active:', antibot.isCloakingActive());
+    console.log('User blocked:', antibot.isUserBlocked());
+  </script>
+</body>
+</html>
+```
 
-// Usage
-try {
-  const token = await verifyWithTimeout(30000);
-  console.log('Verified:', token);
-} catch (error) {
-  console.error('Verification failed:', error);
+### React/Next.js with Cloaking
+
+```jsx
+'use client';
+import { useEffect, useState } from 'react';
+
+export default function ProtectedPage() {
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [cloakingActive, setCloakingActive] = useState(false);
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.neva-ofm.cc/latest/neva-ofm.js';
+    script.async = true;
+    
+    script.onload = () => {
+      const antibot = new window.AntiBot('abs_your_site_key_here');
+      
+      setIsBlocked(antibot.isUserBlocked());
+      setCloakingActive(antibot.isCloakingActive());
+    };
+    
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
+
+  if (isBlocked) {
+    return null; // Cloaking handles the blocking
+  }
+
+  return (
+    <div>
+      <h1>Protected Content</h1>
+      
+      {/* Hide sensitive content */}
+      <div className="bot-hide">
+        <p>Secret information only for real users</p>
+        <button>Premium Action</button>
+      </div>
+      
+      {cloakingActive && (
+        <p>Advanced protection enabled</p>
+      )}
+    </div>
+  );
 }
 ```
 
-## Best Practices
+[↑ Back to Top](#-table-of-contents)
 
-### Security
+---
 
-- Always verify tokens on your backend server
-- Never trust client-side verification alone
-- Store secret keys securely (environment variables)
-- Use HTTPS in production
-- Add rate limiting to your verification endpoint
-- Log verification failures for security monitoring
-- Hide sensitive content using `.bot-hide` class
-- Regularly rotate your API keys
-- Monitor your dashboard for suspicious activity
+# Additional Resources
 
-### Performance
+## Combining Captcha + Cloaking
 
-- Load SDK asynchronously to avoid blocking page render
-- Use `hideCaptcha: true` for better user experience
-- Enable `randomContainers` for anti-automation
-- Cache verification results on backend (with short TTL)
-- Use CDN for faster SDK delivery
-- Monitor API response times in your dashboard
+You can use both features together for maximum protection:
 
-### User Experience
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.neva-ofm.cc/latest/neva-ofm.js"></script>
+</head>
+<body>
+  <!-- Logo hidden by cloaking -->
+  <img src="/logo.png" class="bot-hide" alt="Logo">
+  
+  <!-- Login form hidden by cloaking -->
+  <form id="loginForm" class="bot-hide">
+    <input type="email" placeholder="Email">
+    <input type="password" placeholder="Password">
+    
+    <!-- Captcha for additional verification -->
+    <div id="antibot-container"></div>
+    
+    <button type="submit">Login</button>
+  </form>
 
-- Provide clear instructions for users
-- Use appropriate theme (light/dark) for your design
-- Show loading indicators during verification
-- Handle errors gracefully with user-friendly messages
-- Auto-reset captcha on expiration
-- Test on multiple devices and browsers
+  <script>
+    // Initialize with both cloaking and captcha
+    const antibot = new AntiBot('abs_your_site_key_here', {
+      hideCaptcha: true,
+      mouseTracking: true
+    });
+    
+    // Render captcha (cloaking works automatically)
+    antibot.render('antibot-container');
+    
+    // Form submission with verification
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const verifyToken = await antibot.verify();
+      
+      // Submit to backend...
+    });
+  </script>
+</body>
+</html>
+```
+
+**Benefits of combining:**
+- Cloaking blocks most bots automatically
+- Captcha verifies legitimate users
+- Maximum protection for critical actions
+- Better user experience (most bots never see captcha)
+
+[↑ Back to Top](#-table-of-contents)
+
+---
 
 ## Troubleshooting
 
 ### "Domain not authorized" error
 
 **Solution:**
-- Check your domain is added in NEVA OFM dashboard
-- Verify you're using the correct site key
-- Ensure domain matches exactly (including www/non-www)
+- Check domain is added in NEVA OFM dashboard
+- Verify you're using correct site key
+- Ensure domain matches exactly (www/non-www)
+
+---
 
 ### "Subscription expired" error
 
 **Solution:**
-- Check your subscription status in dashboard
+- Check subscription status in dashboard
 - Renew your plan if expired
-- Free plan users: Ensure you're not using cloaking features
+- Free plan users: Cannot use cloaking features
+
+---
 
 ### Captcha not loading
 
 **Solution:**
 - Check browser console for errors
 - Verify Turnstile/hCaptcha keys are correct
-- Ensure `api.neva-ofm.cc` is in allowed domains for captcha provider
+- Ensure `api.neva-ofm.cc` is in captcha provider's allowed domains
 - Check if ad blocker is interfering
+
+---
 
 ### Elements not hiding with cloaking
 
 **Solution:**
 - Verify cloaking is enabled in dashboard
-- Check you have a paid plan
+- Check you have a paid plan (cloaking is premium)
 - Ensure elements have correct class (`.bot-hide`)
 - Wait for SDK initialization to complete
-
-## Pricing
-
-- **Free Plan** - Basic captcha verification with branding
-- **5 Domains Plan** - Captcha verification without branding and Cloaking features + 5 domains
-- **10 Domains Plan** - Captcha verification without branding and Cloaking features + 10 domains
-
-Visit [neva-ofm.cc](https://neva-ofm.cc) for current pricing and features.
-
-## Support
-
-Need help? Contact our support team:
-
-- Raise ticket in NEVA OFM Dashboard: [neva-ofm.cc/dashboard](https://neva-ofm.cc/dashboard)
-- Telegram: [@manager_shurik](https://t.me/manager_shurik)
-- Documentation: [docs.neva-ofm.cc](https://docs.neva-ofm.cc)
-- Issues: [GitHub Issues](https://github.com/bikmeev/neva-ofm-sdk/issues)
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## Links
-
-- Website: [neva-ofm.cc](https://neva-ofm.cc)
-- Documentation: [docs.neva-ofm.cc](https://docs.neva-ofm.cc)
-- GitHub: [github.com/bikmeev/neva-ofm-sdk](https://github.com/bikmeev/neva-ofm-sdk)
-- CDN: [cdn.neva-ofm.cc](https://cdn.neva-ofm.cc)
+- Check custom selector in dashboard settings
 
 ---
 
-Made by NEVA OFM Team
+### Legitimate users being blocked
 
-## Support Our Project
+**Solution:**
+- Lower protection mode (aggressive → moderate → standard)
+- Check blocked countries list
+- Disable crawler blocking if needed
+- Review device blocking settings
+- Check fallback page is working correctly
 
-If you find NEVA OFM SDK helpful, consider supporting our development with cryptocurrency:
+[↑ Back to Top](#-table-of-contents)
 
-<a href="https://nowpayments.io/donation?api_key=d5835015-743c-479c-86ce-df1d9fc2eb07" target="_blank" rel="noreferrer noopener">
-    <img src="https://nowpayments.io/images/embeds/donation-button-white.svg" alt="Cryptocurrency & Bitcoin donation button by NOWPayments">
-</a>
+---
 
-Your support helps us maintain and improve the SDK. Thank you!
+## Pricing
 
-## Change Log
+| Plan | Price | Features |
+|------|-------|----------|
+| **Free** | $0/mo | Basic captcha verification with branding |
+| **5 Domains** | [Check Site](https://neva-ofm.cc) | Сaptcha without branding<br>Cloaking features<br>5 domains<br>BlackTLDs protection |
+| **10 Domains** | [Check Site](https://neva-ofm.cc) | Captcha without branding<br>Cloaking features<br>10 domains<br>BlackTLDs protection |
 
-### Version 1.0.5 (Current)
-**Release Date:** 2025-11-13
+Visit [neva-ofm.cc](https://neva-ofm.cc) for current pricing.
+
+[↑ Back to Top](#-table-of-contents)
+
+---
+
+## Support
+
+Need help? Contact our team:
+
+- **Raise support ticket** in [NEVA OFM Dashboard](https://neva-ofm.cc/dashboard)
+- **Telegram:** [@manager_shurik](https://t.me/manager_shurik)
+- **Documentation:** [docs.neva-ofm.cc](https://docs.neva-ofm.cc)
+- **Issues:** [GitHub Issues](https://github.com/bikmeev/neva-ofm-sdk/issues)
+
+[↑ Back to Top](#-table-of-contents)
+
+---
+
+## Changelog
+
+### Version 1.0.5 (Current) - 2025-11-13
 
 **Performance Improvements:**
-- **Instant Rendering** - UI now appears immediately, eliminating empty container delay
-- **Parallel Initialization** - Config and captcha scripts load simultaneously for faster startup
-- **Optimistic Rendering** - Button/loader shows instantly while SDK initializes in background
-- **Preload Both Providers** - Option to load both Turnstile and hCaptcha scripts at once
+- **Instant Rendering** - UI appears immediately, no empty container delay
+- **Parallel Initialization** - Config and captcha scripts load simultaneously
+- **Optimistic Rendering** - Button/loader shows instantly while SDK initializes
+- **Preload Both Providers** - Option to load Turnstile and hCaptcha in parallel
 
 **New Features:**
 - Added `instantRender` option (default: true) for immediate UI display
@@ -1248,24 +1081,26 @@ Your support helps us maintain and improve the SDK. Thank you!
 - Improved user experience with zero-delay UI rendering
 - Enhanced memory management with pending renders cleanup
 
-### Version 1.0.3
-**Release Date:** 2025-11-12
+---
+
+### Version 1.0.4 - 2025-11-13
+
 **Bug Fixes:**
 - Fixed critical DOM manipulation error causing "removeChild" runtime exceptions
 - Resolved memory leaks from event listeners not being properly cleaned up
 - Fixed issue where captcha containers were not safely removed on component unmount
 
 **Improvements:**
-- Added destroy() method for proper cleanup of SDK instances
+- Added `destroy()` method for proper cleanup of SDK instances
 - Implemented safe DOM element removal with parent node validation
-- Enhanced reset() method with error handling to prevent crashes
-- Improved _renderContent() to safely clear containers before rendering
-- Added proper event listener cleanup in _setupMouseTracking()
+- Enhanced `reset()` method with error handling to prevent crashes
+- Improved `_renderContent()` to safely clear containers before rendering
+- Added proper event listener cleanup in `_setupMouseTracking()`
 - Better handling of edge cases when SDK is destroyed during initialization
 
+---
 
-### Version 1.0.2
-**Release Date:** 2025-11-11
+### Version 1.0.3 - 2025-11-12
 
 **Improvements:**
 - Fixed captcha styling issues
@@ -1275,8 +1110,7 @@ Your support helps us maintain and improve the SDK. Thank you!
 
 ---
 
-### Version 1.0.1
-**Release Date:** 2025-11-10
+### Version 1.0.2 - 2025-11-11
 
 **Improvements:**
 - Performance optimization during captcha initialization
@@ -1286,8 +1120,7 @@ Your support helps us maintain and improve the SDK. Thank you!
 
 ---
 
-### Version 1.0.0
-**Release Date:** 2025-11-09
+### Version 1.0.1 - 2025-11-10
 
 **Initial Release:**
 - Basic captcha verification with Cloudflare Turnstile and hCaptcha support
@@ -1301,3 +1134,123 @@ Your support helps us maintain and improve the SDK. Thank you!
 - Hidden captcha mode
 - Secure backend verification with JWT tokens
 - Complete API with callbacks for success, error, and expiration events
+
+[↑ Back to Top](#-table-of-contents)
+
+---
+
+## Best Practices
+
+### Security
+
+- Always verify tokens on your backend server
+- Never trust client-side verification alone
+- Store secret keys securely (environment variables)
+- Use HTTPS in production
+- Add rate limiting to verification endpoint
+- Log verification failures for monitoring
+- Hide sensitive content using `.bot-hide` class
+- Regularly rotate your API keys
+- Monitor dashboard for suspicious activity
+
+### Performance
+
+- Enable `instantRender: true` for zero-delay UI (default in v1.0.5)
+- Use `preloadBothProviders: true` for fastest first captcha load
+- Load SDK asynchronously to avoid blocking page render
+- Use `onInit()` callback to detect when SDK is fully ready
+- Enable `randomContainers` for anti-automation
+- Cache verification results on backend (with short TTL)
+
+### User Experience
+
+- Use `hideCaptcha: true` for better UX (recommended)
+- Provide clear instructions for users
+- Use appropriate theme (light/dark) for your design
+- Show loading indicators during verification
+- Handle errors gracefully with user-friendly messages
+- Auto-reset captcha on expiration
+- Test on multiple devices and browsers
+
+### Cloaking Best Practices
+
+- Start with Standard mode, increase if needed
+- Hide logos, forms, and contact info from bots
+- Create meaningful fallback pages
+- Monitor blocked traffic in dashboard
+- Don't block legitimate search engines (unless needed)
+- Test your configuration with different devices
+- Keep SEO-critical content visible
+
+[↑ Back to Top](#-table-of-contents)
+
+---
+
+## Quick Reference
+
+### Captcha-Only Setup
+
+```javascript
+// Minimal setup
+const antibot = new AntiBot('abs_your_site_key');
+antibot.render('antibot-container');
+antibot.onSuccess(async (token) => {
+  const jwt = await antibot.verify();
+  // Process...
+});
+```
+
+### Cloaking-Only Setup
+
+```html
+<!-- No container needed! -->
+<div class="bot-hide">Protected content</div>
+<script>
+  new AntiBot('abs_your_site_key');
+</script>
+```
+
+### Both Features
+
+```javascript
+const antibot = new AntiBot('abs_your_site_key', {
+  hideCaptcha: true
+});
+antibot.render('antibot-container');
+// Cloaking works automatically + captcha verification
+```
+
+[↑ Back to Top](#-table-of-contents)
+
+---
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## Links
+
+- **Website:** [neva-ofm.cc](https://neva-ofm.cc)
+- **Documentation:** [docs.neva-ofm.cc](https://docs.neva-ofm.cc)
+- **GitHub:** [github.com/bikmeev/neva-ofm-sdk](https://github.com/bikmeev/neva-ofm-sdk)
+- **CDN:** [cdn.neva-ofm.cc](https://cdn.neva-ofm.cc)
+
+---
+
+## Support Our Project
+
+If you find NEVA OFM SDK helpful, consider supporting our development:
+
+<a href="https://nowpayments.io/donation?api_key=d5835015-743c-479c-86ce-df1d9fc2eb07" target="_blank">
+    <img src="https://nowpayments.io/images/embeds/donation-button-white.svg" alt="Crypto donation by NOWPayments">
+</a>
+
+Your support helps us maintain and improve the SDK. Thank you!
+
+---
+
+**Made by NEVA OFM Team**
+
+[↑ Back to Top](#-table-of-contents)

@@ -1,5 +1,5 @@
 /**
- * NEVA OFM SDK v1.0.4 - neva-ofm.cc
+ * NEVA OFM SDK v1.0.5 - neva-ofm.cc
  * Optimized with parallel loading and instant rendering
  */
 
