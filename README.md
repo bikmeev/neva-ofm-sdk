@@ -179,6 +179,10 @@ Creates a new AntiBot instance and initializes the protection system.
 | `randomContainers` | boolean | `true` | Create random dummy containers to confuse automation (reccomended true) |
 | `minDummyContainers` | number | `2` | Minimum number of dummy containers |
 | `maxDummyContainers` | number | `5` | Maximum number of dummy containers |
+| `instantRender` | boolean | `true` | Show UI immediately without waiting for initialization (NEW v1.0.5) |
+| `preloadBothProviders` | boolean | `false` | Load both Turnstile and hCaptcha scripts in parallel |
+| `loaderTextColor` | string | `'white'` | Color of loader text (CSS color value) |
+
 | `retryAttempts` | number | `3` | Number of retry attempts for failed requests |
 | `timeout` | number | `30000` | Request timeout in milliseconds |
 
@@ -488,6 +492,80 @@ antibot
 
 ---
 
+#### `onInit(callback)`
+
+Registers a callback function that will be called when the SDK has fully initialized and is ready to use.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `callback` | function | Yes | Callback function called when SDK is ready |
+
+**Callback Parameters:** None
+
+**Returns:** `this` (for method chaining)
+
+**Example:**
+```javascript
+const antibot = new AntiBot('abs_your_site_key_here');
+
+antibot.onInit(() => {
+  console.log('SDK is fully initialized and ready!');
+  
+  // Now safe to call methods
+  antibot.render('antibot-container');
+  
+  // Enable form submission
+  document.getElementById('submitBtn').disabled = false;
+});
+
+// The callback fires immediately if SDK is already initialized
+setTimeout(() => {
+  antibot.onInit(() => {
+    console.log('This fires immediately if SDK already ready');
+  });
+}, 5000);
+```
+
+---
+
+#### `isInitialized()`
+
+Returns whether the SDK has completed initialization and is ready to use.
+
+**Parameters:** None
+
+**Returns:** `boolean` - `true` if SDK is initialized, `false` otherwise
+
+**Example:**
+```javascript
+const antibot = new AntiBot('abs_your_site_key_here');
+
+// Check if ready
+if (antibot.isInitialized()) {
+  console.log('SDK is ready');
+  antibot.render('antibot-container');
+} else {
+  console.log('SDK still initializing...');
+  
+  // Wait for initialization
+  antibot.onInit(() => {
+    antibot.render('antibot-container');
+  });
+}
+
+// Polling example
+const checkInterval = setInterval(() => {
+  if (antibot.isInitialized()) {
+    clearInterval(checkInterval);
+    console.log('SDK ready!');
+  }
+}, 100);
+```
+
+---
+
 #### `onError(callback)`
 
 Registers a callback function that will be called when an error occurs during captcha rendering or verification.
@@ -604,6 +682,15 @@ antibot.onSuccess(() => {
 - Notify users that they need to verify again
 - Disable form submission until re-verified
 - Consider implementing auto-refresh if user is still on the page
+
+### Performance
+
+- Enable `instantRender: true` for zero-delay UI (default in v1.0.5)
+- Use `preloadBothProviders: true` if you need fastest first captcha load
+- Load SDK asynchronously to avoid blocking page render
+- Use `onInit()` callback to detect when SDK is fully ready
+- Enable `randomContainers` for anti-automation
+- Cache verification results on backend (with short TTL)
 
 ---
 
@@ -1138,7 +1225,30 @@ Your support helps us maintain and improve the SDK. Thank you!
 
 ## Change Log
 
-### Version 1.0.3 (Current)
+### Version 1.0.5 (Current)
+**Release Date:** 2025-11-13
+
+**Performance Improvements:**
+- **Instant Rendering** - UI now appears immediately, eliminating empty container delay
+- **Parallel Initialization** - Config and captcha scripts load simultaneously for faster startup
+- **Optimistic Rendering** - Button/loader shows instantly while SDK initializes in background
+- **Preload Both Providers** - Option to load both Turnstile and hCaptcha scripts at once
+
+**New Features:**
+- Added `instantRender` option (default: true) for immediate UI display
+- Added `preloadBothProviders` option for parallel script loading
+- Added `loaderTextColor` option to customize loader text color
+- New `onInit(callback)` method to detect when SDK is fully ready
+- New `isInitialized()` method to check initialization status
+- Pending render queue system for deferred initialization
+
+**Technical Improvements:**
+- Optimized initialization flow with Promise.all for parallel tasks
+- Better handling of render() calls before SDK is ready
+- Improved user experience with zero-delay UI rendering
+- Enhanced memory management with pending renders cleanup
+
+### Version 1.0.3
 **Release Date:** 2025-11-12
 **Bug Fixes:**
 - Fixed critical DOM manipulation error causing "removeChild" runtime exceptions
