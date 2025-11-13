@@ -27,6 +27,15 @@ Advanced bot protection with captcha verification and intelligent cloaking syste
 - [Dashboard Configuration](#dashboard-configuration)
 - [Examples](#cloaking-examples)
 
+### [Telegram Mini App Protection](#telegram-mini-app-protection)
+- [What is Telegram Mini App Protection?](#what-is-telegram-mini-app-protection)
+- [Quick Start - Telegram Mini App](#quick-start---telegram-mini-app)
+- [How It Works](#how-it-works)
+- [Dashboard Configuration](#dashboard-configuration-1)
+- [Complete Example with Menu](#complete-example-with-menu)
+- [Important Notes](#important-notes)
+- [Data Flow](#data-flow)
+
 ### [Additional Resources](#additional-resources)
 - [Combining Captcha + Cloaking](#combining-captcha--cloaking)
 - [Troubleshooting](#troubleshooting)
@@ -911,6 +920,434 @@ export default function ProtectedPage() {
   );
 }
 ```
+
+[↑ Back to Top](#-table-of-contents)
+
+
+---
+
+# Telegram Mini App Protection
+
+## What is Telegram Mini App Protection?
+
+NEVA OFM provides seamless captcha verification for Telegram bots through Mini Apps. No hosting required - everything is managed through your dashboard!
+
+**Perfect for:**
+- Bot registration/login systems
+- Payment verification in bots
+- Premium content access
+- Anti-spam protection
+- User verification flows
+
+**Features:**
+- Dual captcha support (Cloudflare Turnstile & hCaptcha)
+- Automatic theme adaptation (light/dark)
+- **No HTML hosting needed** - hosted on `tg.neva-ofm.cc`
+- **No configuration files** - everything in dashboard
+- Secure verification with JWT tokens
+- Easy integration with existing bots
+
+---
+
+## Quick Start - Telegram Mini App
+
+### 1. Register Bot in Dashboard
+
+1. Go to [NEVA OFM Dashboard](https://neva-ofm.cc/dashboard)
+2. Navigate to **"Telegram Bots"** section
+3. Click **"Add New Bot"**
+4. Enter your **Bot Token** (from @BotFather)
+5. Your bot is automatically configured!
+
+You'll receive:
+- **Bot Key** (starts with `tgbot_`) - for API requests
+- **Secret Key** - for backend verification
+- **Mini App URL** - ready-to-use `https://tg.neva-ofm.cc?bot_key=tgbot_...`
+
+**That's it!** Your Mini App is already hosted and ready.
+
+---
+
+### 2. Create/use it in Telegram Bot
+
+Just add the button with your Mini App URL from dashboard:
+```python
+import telebot
+from telebot import types
+import json
+
+BOT_TOKEN = "8550776750:AAFoYUZURpi5r3Qnj-riN9qQSqgQZEoqEZM"  # From @BotFather
+
+#Copy these from NEVA OFM Dashboard
+BOT_KEY = "tgbot_5adaa7bb5868aaa9caa4dfbff16e0287"
+MINI_APP_URL = "https://tg.neva-ofm.cc?bot_key=tgbot_5adaa7bb5868aaa9caa4dfbff16e0287"
+
+bot = telebot.TeleBot(BOT_TOKEN)
+
+
+@bot.message_handler(commands=['start'])
+def start_command(message):
+    user = message.from_user
+    
+    # Use ReplyKeyboardMarkup (important!)
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    
+    verify_btn = types.KeyboardButton(
+        text="Verify & Continue",
+        web_app=types.WebAppInfo(url=MINI_APP_URL)
+    )
+    
+    markup.add(verify_btn)
+    
+    welcome_text = (
+        f"Hello, {user.first_name}!\n\n"
+        "Welcome to our bot!\n\n"
+        "Click the button below to verify you're not a bot.\n\n"
+        "Protected by NEVA OFM"
+    )
+    
+    bot.send_message(message.chat.id, welcome_text, reply_markup=markup)
+
+
+@bot.message_handler(content_types=['web_app_data'])
+def handle_verification(message):
+    """
+    This handler receives data from Mini App
+    when user completes captcha verification
+    """
+    try:
+        # Get data from Mini App
+        data = json.loads(message.web_app_data.data)
+        
+        user = message.from_user
+        token = data.get('token')        # JWT token
+        timestamp = data.get('timestamp') # Verification time
+        
+        print(f"Verification successful!")
+        print(f"   User: {user.first_name} (@{user.username})")
+        print(f"   ID: {user.id}")
+        print(f"   Token: {token[:50]}...")
+        print(f"   Time: {timestamp}")
+        
+        # Send success message
+        success_text = (
+            f"<b>Verification Successful!</b>\n\n"
+            f"Welcome, {user.first_name}!\n"
+            f"You have successfully passed the CAPTCHA verification.\n\n"
+            f"Session secured\n"
+            f"Time: {timestamp}\n\n"
+            f"Opening main menu..."
+        )
+        
+        bot.send_message(message.chat.id, success_text, parse_mode='HTML')
+        
+        # Continue with your bot logic...
+        # show_main_menu(message.chat.id, user.first_name)
+        
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        bot.send_message(
+            message.chat.id,
+            "❌ Verification failed. Please try again with /start"
+        )
+
+
+bot.infinity_polling()
+```
+
+**That's it!** Your bot is now protected with captcha verification.
+
+---
+
+## How It Works
+
+1. **User clicks button** → Opens Mini App (`tg.neva-ofm.cc`)
+2. **Mini App loads** → Shows captcha (Turnstile or hCaptcha)
+3. **User solves captcha** → Mini App verifies with NEVA OFM API
+4. **Verification succeeds** → Mini App sends data to bot via `tg.sendData()`
+5. **Bot receives data** → `@bot.message_handler(content_types=['web_app_data'])` handles it
+
+### Security Flow
+```
+User → Telegram → Mini App (tg.neva-ofm.cc) → NEVA OFM API → Verify Bot Key → Return JWT Token → Bot
+```
+
+Your **Bot Token** is used to validate that the request comes from **your specific bot**, preventing unauthorized access.
+
+---
+
+## Dashboard Configuration
+
+In your NEVA OFM Dashboard → Telegram Bots section:
+
+| Setting | Description | Example |
+|---------|-------------|---------|
+| **Bot Username** | Your bot's @username | `@testbot` |
+| **Bot Token** | Token from @BotFather | `8550776750:AAFo...` |
+| **Bot Key** | Auto-generated identifier | `tgbot_5adaa7bb...` |
+| **Secret Key** | For backend verification | `secret_71593dac...` |
+| **Mini App URL** | Ready-to-use URL | `https://tg.neva-ofm.cc?bot_key=...` |
+
+
+**No additional setup needed** - Mini App uses your site's captcha configuration.
+
+---
+
+## Complete Example with Menu
+```python
+import telebot
+from telebot import types
+import json
+import time
+
+BOT_TOKEN = "your_bot_token_from_botfather"
+BOT_KEY = "tgbot_from_dashboard"
+MINI_APP_URL = "https://tg.neva-ofm.cc?bot_key=tgbot_from_dashboard"
+
+bot = telebot.TeleBot(BOT_TOKEN)
+
+
+@bot.message_handler(commands=['start'])
+def start_command(message):
+    """Send welcome message with verification button"""
+    user = message.from_user
+    
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    verify_btn = types.KeyboardButton(
+        text="Verify & Continue",
+        web_app=types.WebAppInfo(url=MINI_APP_URL)
+    )
+    markup.add(verify_btn)
+    
+    welcome_text = (
+        f"Hello, {user.first_name}!\n\n"
+        "Welcome to our protected bot.\n\n"
+        "Click the button below to verify you're not a bot.\n\n"
+        "Protected by NEVA OFM"
+    )
+    
+    bot.send_message(message.chat.id, welcome_text, reply_markup=markup)
+
+
+@bot.message_handler(commands=['help'])
+def help_command(message):
+    """Show help information"""
+    help_text = (
+        "ℹ️ <b>Available Commands:</b>\n\n"
+        "/start - Start verification\n"
+        "/help - Show this help\n"
+        "/menu - Show main menu\n\n"
+        "🔧 Powered by NEVA OFM AntiBot"
+    )
+    bot.send_message(message.chat.id, help_text, parse_mode='HTML')
+
+
+@bot.message_handler(commands=['menu'])
+def menu_command(message):
+    """Show main menu"""
+    show_main_menu(message.chat.id, message.from_user.first_name)
+
+
+@bot.message_handler(content_types=['web_app_data'])
+def handle_verification(message):
+    """
+    Handle verification data from Mini App
+    This is triggered when user completes captcha
+    """
+    try:
+        # Parse data from Mini App
+        data = json.loads(message.web_app_data.data)
+        
+        user = message.from_user
+        token = data.get('token', 'N/A')
+        timestamp = data.get('timestamp', 'N/A')
+        
+        # Log verification
+        print(f"Verification received:")
+        print(f"   User: {user.first_name} (@{user.username})")
+        print(f"   ID: {user.id}")
+        print(f"   Token: {token[:50]}...")
+        print(f"   Time: {timestamp}")
+        print("-" * 50)
+        
+        # Send success message
+        success_text = (
+            f"<b>Verification Successful!</b>\n\n"
+            f"Welcome, {user.first_name}!\n"
+            f"You have successfully passed the CAPTCHA verification.\n\n"
+            f"Session secured\n"
+            f"Time: {timestamp}\n\n"
+            f"Opening main menu..."
+        )
+        
+        bot.send_message(message.chat.id, success_text, parse_mode='HTML')
+        
+        # Show main menu after 1 second
+        time.sleep(1)
+        show_main_menu(message.chat.id, user.first_name)
+        
+    except Exception as e:
+        print(f"Error handling web app data: {e}")
+        bot.send_message(
+            message.chat.id,
+            "Verification failed. Please try again with /start"
+        )
+
+
+def show_main_menu(chat_id, username):
+    """Display main menu with options"""
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    
+    btn1 = types.KeyboardButton("My Profile")
+    btn2 = types.KeyboardButton("Security")
+    btn3 = types.KeyboardButton("Support")
+    btn4 = types.KeyboardButton("Help")
+    
+    # Add verify again button
+    verify_btn = types.KeyboardButton(
+        "Verify Again",
+        web_app=types.WebAppInfo(url=MINI_APP_URL)
+    )
+    
+    markup.add(btn1, btn2)
+    markup.add(btn3, btn4)
+    markup.add(verify_btn)
+    
+    menu_text = (
+        f"<b>Main Menu</b>\n\n"
+        f"Welcome, {username}!\n"
+        f"Choose an option below:"
+    )
+    
+    bot.send_message(chat_id, menu_text, reply_markup=markup, parse_mode='HTML')
+
+
+@bot.message_handler(func=lambda message: True)
+def handle_menu_buttons(message):
+    """Handle menu button clicks"""
+    text = message.text
+    chat_id = message.chat.id
+    user = message.from_user
+    
+    if text == "📊 My Profile":
+        profile_text = (
+            f"👤 <b>Your Profile</b>\n\n"
+            f"Name: {user.first_name} {user.last_name or ''}\n"
+            f"Username: @{user.username or 'N/A'}\n"
+            f"ID: <code>{user.id}</code>\n"
+            f"Language: {user.language_code or 'N/A'}\n\n"
+            f"Status: ✅ Verified User"
+        )
+        bot.send_message(chat_id, profile_text, parse_mode='HTML')
+    
+    elif text == "🔒 Security":
+        security_text = (
+            "🔒 <b>Security Status</b>\n\n"
+            "✅ CAPTCHA Protection: Active\n"
+            "✅ Anti-Bot System: Enabled\n"
+            "✅ Secure Connection: Yes\n"
+            "✅ Data Encryption: Active\n\n"
+            "Your account is fully protected! 🛡️\n\n"
+            "Click '🔐 Verify Again' to refresh your verification."
+        )
+        bot.send_message(chat_id, security_text, parse_mode='HTML')
+    
+    elif text == "💬 Support":
+        support_text = (
+            "💬 <b>Support</b>\n\n"
+            "Need help? Contact us:\n\n"
+            "📧 Email: support@example.com\n"
+            "🌐 Website: https://example.com\n\n"
+            "We're here to help! 🤝"
+        )
+        bot.send_message(chat_id, support_text, parse_mode='HTML')
+    
+    elif text == "ℹ️ Help":
+        help_command(message)
+    
+    else:
+        bot.send_message(
+            chat_id,
+            "❓ Unknown command. Use the menu buttons or /help"
+        )
+
+
+def main():
+    """Start the bot"""
+    print("=" * 60)
+    print("🚀 NEVA OFM Telegram Bot Starting...")
+    print("=" * 60)
+    print(f"📱 Bot Key: {BOT_KEY}")
+    print(f"🔗 Mini App: {MINI_APP_URL}")
+    print("=" * 60)
+    print("✅ Bot is running... Press Ctrl+C to stop.\n")
+    
+    try:
+        bot.infinity_polling(timeout=60, long_polling_timeout=60)
+    except KeyboardInterrupt:
+        print("\n" + "=" * 60)
+        print("👋 Bot stopped by user")
+        print("=" * 60)
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+## Important Notes
+
+### Use ReplyKeyboardMarkup
+
+**Correct:**
+```python
+markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+verify_btn = types.KeyboardButton(
+    text="🔐 Verify",
+    web_app=types.WebAppInfo(url=MINI_APP_URL)
+)
+markup.add(verify_btn)
+```
+
+**Why?** Only `ReplyKeyboardMarkup` properly triggers the `web_app_data` message type that your bot needs to receive verification data.
+
+---
+
+### Don't Use InlineKeyboardMarkup
+
+**Incorrect:**
+```python
+# This WON'T work for data delivery!
+markup = types.InlineKeyboardMarkup()
+verify_btn = types.InlineKeyboardButton(
+    text="🔐 Verify",
+    web_app=types.WebAppInfo(url=MINI_APP_URL)
+)
+```
+
+**Why?** `InlineKeyboardMarkup` doesn't properly deliver data to the `web_app_data` handler.
+
+---
+
+### Data Flow
+```
+1. User clicks "🔐 Verify & Continue" button
+2. Telegram opens Mini App (tg.neva-ofm.cc)
+3. User sees captcha (Turnstile or hCaptcha)
+4. User completes captcha
+5. Mini App verifies with NEVA OFM API using bot_key
+6. API validates bot_key against bot_token
+7. Mini App receives JWT token
+8. Mini App calls tg.sendData() with token + user info
+9. Telegram delivers data to bot
+10. Bot's @bot.message_handler(content_types=['web_app_data']) receives it
+```
+
+
+
 
 [↑ Back to Top](#-table-of-contents)
 
