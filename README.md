@@ -976,7 +976,7 @@ import telebot
 from telebot import types
 import json
 
-BOT_TOKEN = "8550776750:AAFoYUZURpi5r3Qnj-riN9qQSqgQZEoqEZM"  # From @BotFather
+BOT_TOKEN = ""  # From @BotFather
 
 #Copy these from NEVA OFM Dashboard
 BOT_KEY = "tgbot_5adaa7bb5868aaa9caa4dfbff16e0287"
@@ -1100,7 +1100,7 @@ from telebot import types
 import json
 import time
 
-BOT_TOKEN = "your_bot_token_from_botfather"
+BOT_TOKEN = ""
 BOT_KEY = "tgbot_from_dashboard"
 MINI_APP_URL = "https://tg.neva-ofm.cc?bot_key=tgbot_from_dashboard"
 
